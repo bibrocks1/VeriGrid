@@ -1,46 +1,32 @@
-from datetime import datetime
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
 
-from pydantic import BaseModel
+from models import ReportCategory
 
-from models import ReportCategory, ClusterStatus
-# What does the API key return/accept
 
 class ReportCreate(BaseModel):
-    user_id: int
     category: ReportCategory
-    description: Optional[str] = None
+    description: str | None = None
     lat: float
-    lon: float
+    lng: float
+    device_id: str = Field(min_length=1)
+
+    @field_validator("lat")
+    @classmethod
+    def validate_lat(cls, v: float) -> float:
+        if not -90 <= v <= 90:
+            raise ValueError(f"Invalid latitude: {v}")
+        return v
+
+    @field_validator("lng")
+    @classmethod
+    def validate_lng(cls, v: float) -> float:
+        if not -180 <= v <= 180:
+            raise ValueError(f"Invalid longitude: {v}")
+        return v
 
 
-class ReportOut(BaseModel):
-    id: int
-    user_id: int
-    category: ReportCategory
-    description: Optional[str] = None
-    lat: float
-    lon: float
-    cluster_id: Optional[int] = None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ClusterOut(BaseModel):
-    id: int
-    category: ReportCategory
-    status: ClusterStatus
-    confidence: int
-    report_count: int
-    lat: float
-    lon: float
-
-    class Config:
-        from_attributes = True
-
-
+# Not wired up yet — Day 9's RAG chat endpoint isn't implemented. Kept here
+# as the agreed request/response contract so that work has a starting point.
 class ChatRequest(BaseModel):
     lat: float
     lon: float
@@ -49,15 +35,3 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-
-class ClusterOut(BaseModel):
-    id: int
-    category: str
-    status: str
-    confidence: int
-    report_count: int
-    lat: float
-    lon: float
-
-    class Config:
-        from_attributes = True

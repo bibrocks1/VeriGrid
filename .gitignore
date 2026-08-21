@@ -13,6 +13,10 @@ env/
 .env.*
 !.env.example
 
+# Node / Next.js frontend
+node_modules/
+.next/
+
 # VS Code / IDE
 .vscode/
 .idea/

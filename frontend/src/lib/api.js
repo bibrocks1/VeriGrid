@@ -13,12 +13,16 @@ import {
   MOCK_AUTHORITY_REPORT,
   MOCK_SYNC_LOG,
 } from "./mockData";
+import { getDeviceId } from "./deviceId";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const client = axios.create({
   baseURL: BASE_URL,
-  timeout: 4000,
+  // Generous: a report submission triggers a synchronous DBSCAN reclustering
+  // pass with several sequential round trips to a remote (Neon) Postgres,
+  // which can legitimately take several seconds — not a hang.
+  timeout: 15000,
 });
 
 async function withFallback(request, fallbackData) {
@@ -46,7 +50,8 @@ export function getStats() {
 }
 
 export function createReport(payload) {
-  return withFallback(() => client.post("/reports", payload), {
+  const body = { ...payload, device_id: getDeviceId() };
+  return withFallback(() => client.post("/reports", body), {
     ...payload,
     id: `demo-${Date.now()}`,
   });

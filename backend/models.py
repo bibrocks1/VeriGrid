@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
-from sqlalchemy import Column, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import Text
 from sqlalchemy.orm import relationship
@@ -34,6 +34,12 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    # Identifies an anonymous browser (localStorage-generated UUID) as "the
+    # same reporter" across visits. No login system exists yet — this is
+    # the whole identity model for now.
+    device_id = Column(String, unique=True, nullable=True, index=True)
+
     trust_score = Column(Integer, nullable=False, default=10)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
@@ -83,6 +89,9 @@ class HazardCluster(Base):
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    # Set once, the first time this cluster's status becomes verified.
+    verified_at = Column(DateTime(timezone=True), nullable=True)
 
     reports = relationship("Report", back_populates="cluster")
 

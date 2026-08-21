@@ -1,191 +1,168 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
-from geoalchemy2 import WKTElement
-from geoalchemy2 import Geometry
-from consensus import update_cluster_confidence
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from geoalchemy2.shape import from_shape, to_shape
+from shapely.geometry import Point
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+
+from clustering import recompute_clusters_for_category
 from database import get_db
-from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut
-from sqlalchemy import select, func
-from sqlalchemy.orm import Session
-from fastapi import Depends
-from sqlalchemy import Float
-
-from schemas import ReportOut
-
-from models import Report, HazardCluster
-
-from clustering import run_clustering_for_category
-
-from schemas import (
-    ChatRequest,
-    ChatResponse,
-    ReportCreate,
-    ReportOut,
-    ClusterOut
-)
+from models import ClusterStatus, HazardCluster, Report, User
+from schemas import ReportCreate
 
 app = FastAPI(title="VeriGrid API")
+
+app.add_middleware(
+    CORSMiddleware,
+    # Local dev only — the frontend always runs on :3000 in this setup
+    # (npm run dev or docker-compose). Widen this once there's a deployed
+    # frontend origin to allow.
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
 def health_check():
+    return {"status": "ok", "message": "Backend is running!"}
+
+
+@app.post("/chat")
+def chat():
+    # Placeholder shaped to match what ChatMessage.jsx actually renders
+    # ({role, source, text}) — Day 9's real RAG pipeline (retriever +
+    # Gemini/OpenAI call) isn't built yet. See schemas.ChatRequest/
+    # ChatResponse for the agreed contract to wire up next.
     return {
-        "status": "ok",
-        "message": "Backend is running!"
+        "role": "assistant",
+        "source": "verigrid",
+        "text": (
+            "Chat isn't grounded in live data yet — once the retrieval "
+            "pipeline is built, answers here will cite verified VeriGrid "
+            "reports and MirEye's infrastructure records."
+        ),
     }
 
 
-@app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
-    return ChatResponse(
-        answer="Chat functionality coming soon."
+def _report_to_dict(report: Report) -> dict:
+    point = to_shape(report.geom)
+    return {
+        "id": report.id,
+        "category": report.category.value,
+        "description": report.description,
+        "lat": point.y,
+        "lng": point.x,
+        "createdAt": report.created_at.isoformat() if report.created_at else None,
+        "reporterTrust": report.user.trust_score,
+    }
+
+
+def _cluster_to_dict(cluster: HazardCluster, db: Session) -> dict:
+    point = to_shape(cluster.geom)
+    members = (
+        db.query(Report)
+        .filter(Report.cluster_id == cluster.id)
+        .order_by(Report.created_at.desc())
+        .all()
     )
+    distinct_reporters = len({r.user_id for r in members})
+    first_reported_at = min((r.created_at for r in members), default=cluster.created_at)
+    latest_description = members[0].description if members else None
+
+    return {
+        "id": cluster.id,
+        "category": cluster.category.value,
+        "status": cluster.status.value,
+        "confidence": cluster.confidence,
+        "description": latest_description,
+        "lat": point.y,
+        "lng": point.x,
+        "reporterCount": cluster.report_count,
+        "distinctReporters": distinct_reporters,
+        "firstReportedAt": first_reported_at.isoformat() if first_reported_at else None,
+        "verifiedAt": cluster.verified_at.isoformat() if cluster.verified_at else None,
+    }
 
 
-@app.post("/reports", response_model=ReportOut)
-def create_report(
-    report: ReportCreate,
-    db: Session = Depends(get_db)
-):
-    db_report = Report(
-        user_id=report.user_id,
-        category=report.category,
-        description=report.description,
-        geom=WKTElement(
-            f"POINT({report.lon} {report.lat})",
-            srid=4326
-        )
+@app.post("/reports")
+def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.device_id == payload.device_id).first()
+    if user is None:
+        user = User(device_id=payload.device_id, trust_score=10)
+        db.add(user)
+        db.flush()  # assign an id before the report references it
+
+    report = Report(
+        user_id=user.id,
+        category=payload.category,
+        description=payload.description,
+        geom=from_shape(Point(payload.lng, payload.lat), srid=4326),
     )
-
-    db.add(db_report)
+    db.add(report)
     db.commit()
-    db.refresh(db_report)
+    db.refresh(report)
 
-    run_clustering_for_category(
-    db,
-    db_report.category
-    )
+    # Inline recompute, matching the doc's "trigger this inline after report
+    # submission" option — simplest correct choice at this scale.
+    recompute_clusters_for_category(db, payload.category)
+    db.refresh(report)
 
-    if db_report.cluster_id:
-        update_cluster_confidence(
-        db,
-        db_report.cluster_id
-        )
-    return ReportOut(
-        id=db_report.id,
-        user_id=db_report.user_id,
-        category=db_report.category,
-        description=db_report.description,
-        lat=report.lat,
-        lon=report.lon,
-        cluster_id=db_report.cluster_id,
-        created_at=db_report.created_at
-    )
-
-@app.get("/reports", response_model=list[ReportOut])
-def get_reports(db: Session = Depends(get_db)):
-    rows = db.execute(
-        select(
-            Report.id,
-            Report.user_id,
-            Report.category,
-            Report.description,
-            func.ST_Y(Report.geom.cast(Geometry)).label("lat"),
-            func.ST_X(Report.geom.cast(Geometry)).label("lon"),
-            Report.cluster_id,
-            Report.created_at,
-        )
-    ).all()
-
-    return [
-        {
-            "id": row.id,
-            "user_id": row.user_id,
-            "category": row.category,
-            "description": row.description,
-            "lat": row.lat,
-            "lon": row.lon,
-            "cluster_id": row.cluster_id,
-            "created_at": row.created_at,
-        }
-        for row in rows
-    ]
+    return _report_to_dict(report)
 
 
-@app.get("/reports/nearby", response_model=list[ReportOut])
-def get_nearby_reports(
+@app.get("/reports")
+def list_reports(db: Session = Depends(get_db)):
+    reports = db.query(Report).options(joinedload(Report.user)).all()
+    return [_report_to_dict(r) for r in reports]
+
+
+@app.get("/reports/nearby")
+def list_nearby_reports(
     lat: float,
-    lon: float,
-    radius: float = 5000,
-    db: Session = Depends(get_db)
+    lng: float,
+    radius_m: float = 5000,
+    category: str | None = None,
+    db: Session = Depends(get_db),
 ):
-    point = func.ST_SetSRID(
-        func.ST_MakePoint(lon, lat),
-        4326
+    """Day 5: reports within `radius_m` meters of (lat, lng), optionally
+    filtered by category. Uses PostGIS ST_DWithin on the Geography column,
+    which operates in real meters (not degrees)."""
+    origin = from_shape(Point(lng, lat), srid=4326)
+    query = (
+        db.query(Report)
+        .options(joinedload(Report.user))
+        .filter(func.ST_DWithin(Report.geom, origin, radius_m))
     )
+    if category is not None:
+        query = query.filter(Report.category == category)
 
-    rows = db.execute(
-        select(
-            Report.id,
-            Report.user_id,
-            Report.category,
-            Report.description,
-            func.ST_Y(
-                Report.geom.cast(Geometry)
-            ).label("lat"),
-            func.ST_X(
-                Report.geom.cast(Geometry)
-            ).label("lon"),
-            Report.cluster_id,
-            Report.created_at,
-        )
-        .where(
-            func.ST_DWithin(
-                Report.geom,
-                point,
-                radius
-            )
-        )
-    ).all()
-
-    return [
-        {
-            "id": row.id,
-            "user_id": row.user_id,
-            "category": row.category,
-            "description": row.description,
-            "lat": row.lat,
-            "lon": row.lon,
-            "cluster_id": row.cluster_id,
-            "created_at": row.created_at,
-        }
-        for row in rows
-    ]
+    reports = query.all()
+    return [_report_to_dict(r) for r in reports]
 
 
+@app.get("/clusters")
+def list_clusters(db: Session = Depends(get_db)):
+    clusters = (
+        db.query(HazardCluster)
+        .filter(HazardCluster.status != ClusterStatus.forming)
+        .all()
+    )
+    return [_cluster_to_dict(c, db) for c in clusters]
 
-from geoalchemy2 import Geometry
-from sqlalchemy import func
 
-@app.get("/clusters", response_model=list[ClusterOut])
-def get_clusters(db: Session = Depends(get_db)):
-    rows = db.execute(
-        select(
-            HazardCluster.id, HazardCluster.category, HazardCluster.status,
-            HazardCluster.confidence, HazardCluster.report_count,
-            func.ST_Y(HazardCluster.geom.cast(Geometry)).label("lat"),
-            func.ST_X(HazardCluster.geom.cast(Geometry)).label("lon"),
-        )
-    ).all()
-    return [
-        {
-            "id": row.id,
-            "category": row.category,
-            "status": row.status,
-            "confidence": row.confidence,
-            "report_count": row.report_count,
-            "lat": row.lat,
-            "lon": row.lon,
-        }
-        for row in rows
-    ]
+@app.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    active_reports = db.query(func.count(Report.id)).scalar()
+    verified_hotspots = (
+        db.query(func.count(HazardCluster.id))
+        .filter(HazardCluster.status == ClusterStatus.verified)
+        .scalar()
+    )
+    trust_contributors = db.query(func.count(func.distinct(Report.user_id))).scalar()
+
+    return {
+        "activeReports": active_reports or 0,
+        "verifiedHotspots": verified_hotspots or 0,
+        "trustContributors": trust_contributors or 0,
+    }
