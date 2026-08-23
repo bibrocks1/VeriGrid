@@ -6,7 +6,6 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import Text
 from sqlalchemy.orm import relationship
-import geoalchemy2
 from database import Base
 
 

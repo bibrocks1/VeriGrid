@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from geoalchemy2 import WKTElement
 from geoalchemy2 import Geometry
+from consensus import update_cluster_confidence
 from database import get_db
 from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut
 from sqlalchemy import select, func
@@ -14,6 +15,7 @@ from schemas import ReportOut
 from models import Report, HazardCluster
 
 from clustering import run_clustering_for_category
+
 from schemas import (
     ChatRequest,
     ChatResponse,
@@ -64,6 +66,11 @@ def create_report(
     db_report.category
     )
 
+    if db_report.cluster_id:
+        update_cluster_confidence(
+        db,
+        db_report.cluster_id
+        )
     return ReportOut(
         id=db_report.id,
         user_id=db_report.user_id,
