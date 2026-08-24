@@ -6,19 +6,15 @@ function formatRelativeTime(isoString) {
   return `${diffHours} hours ago`;
 }
 
-// Pulled from mireye_sync_log per the build guide — gives demo credibility
+// Pulled from mireye_sync_log per the build guide, gives demo credibility
 // that the MirEye integration is a real, live-syncing data source.
 export default function SyncStatusBadge({ sync }) {
   const isOk = sync.status === "ok";
 
   return (
-    <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.1em]">
-      <span
-        className={`h-2 w-2 rounded-full ${isOk ? "bg-verified" : "bg-hazard"}`}
-        aria-hidden
-      />
-      MirEye sync {isOk ? "ok" : "failed"} ·{" "}
-      {formatRelativeTime(sync.lastSyncedAt)} ·{" "}
+    <div className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm font-medium shadow-soft">
+      <span className={`h-2 w-2 rounded-full ${isOk ? "bg-verified" : "bg-hazard"}`} aria-hidden />
+      MirEye sync {isOk ? "ok" : "failed"} &middot; {formatRelativeTime(sync.lastSyncedAt)} &middot;{" "}
       {sync.recordsSynced.toLocaleString()} records
     </div>
   );

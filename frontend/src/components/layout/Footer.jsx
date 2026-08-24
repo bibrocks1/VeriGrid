@@ -4,15 +4,14 @@ export default function Footer() {
   const isDemoMode = !process.env.NEXT_PUBLIC_API_URL;
 
   return (
-    <footer className="border-t border-line-dark/60 bg-ink text-ink-text">
-      <div className="mx-auto max-w-7xl px-6 py-14">
+    <footer className="border-t border-line bg-card">
+      <div className="mx-auto max-w-6xl px-6 py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="max-w-xs">
-            <span className="font-display text-lg font-bold">VeriGrid</span>
-            <p className="mt-3 text-sm leading-relaxed opacity-70">
-              Crowdsourced hazard verification, backed by MirEye infrastructure
-              data. Built to route confirmed issues to the right authority,
-              fast.
+            <span className="font-display text-lg font-bold text-paper-text">VeriGrid</span>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Crowdsourced hazard verification, backed by MirEye infrastructure data. Built to
+              route confirmed issues to the right authority, fast.
             </p>
           </div>
 
@@ -21,27 +20,23 @@ export default function Footer() {
               <a
                 key={link.href}
                 href={link.href}
-                className="font-mono text-xs uppercase tracking-[0.1em] opacity-70 transition-opacity hover:opacity-100"
+                className="text-sm font-medium text-muted transition-colors hover:text-paper-text"
               >
                 {link.label}
               </a>
             ))}
             <a
               href="https://github.com"
-              className="font-mono text-xs uppercase tracking-[0.1em] opacity-70 transition-opacity hover:opacity-100"
+              className="text-sm font-medium text-muted transition-colors hover:text-paper-text"
             >
               GitHub
             </a>
           </nav>
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-line-dark/60 pt-6 text-xs opacity-60 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {new Date().getFullYear()} VeriGrid. Built for a 14-day pilot.
-          </p>
-          {isDemoMode && (
-            <p className="stamp text-amber">Demo mode — mock data</p>
-          )}
+        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} VeriGrid. Built for a 14-day pilot.</p>
+          {isDemoMode && <p className="badge bg-amber/15 text-amber">Demo mode, mock data</p>}
         </div>
       </div>
     </footer>

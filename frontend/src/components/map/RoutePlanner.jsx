@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 
-// Demo route planner (README Hero 6 / Day 10). Renders a schematic route —
-// not a live OSRM call — so the detour-around-a-hazard behavior is legible
-// without depending on a running routing backend. Swap `planRoute` for a
-// real OSRM request once that service exists.
+// Demo route planner. Renders a schematic route, not a live OSRM call, so
+// the detour-around-a-hazard behavior is legible without depending on a
+// running routing backend. Swap `planRoute` for a real OSRM request once
+// that service exists.
 function planRoute(origin, destination) {
   const hasHazard = Boolean(origin.trim() && destination.trim());
   return {
-    distanceKm: 4.2,
+    distanceMiles: 2.6,
     durationMin: 14,
     detoured: hasHazard,
     avoided: hasHazard
-      ? { category: "waterlogging", description: "Ward 4 market underpass" }
+      ? { category: "waterlogging", description: "Riverside Market underpass" }
       : null,
   };
 }
@@ -29,43 +29,39 @@ export default function RoutePlanner() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 rounded-3xl bg-card p-6 shadow-soft sm:p-8 lg:grid-cols-2">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="font-mono text-xs uppercase tracking-[0.1em] opacity-70">
-            From
-          </label>
+          <label className="text-sm font-medium opacity-70">From</label>
           <input
             value={origin}
             onChange={(e) => setOrigin(e.target.value)}
-            placeholder="Ward 4 Market Gate"
-            className="mt-1.5 w-full rounded-sm border border-line bg-transparent px-3 py-2 text-sm"
+            placeholder="Riverside Market"
+            className="mt-1.5 w-full rounded-xl border border-line bg-transparent px-3.5 py-2.5 text-sm"
           />
         </div>
         <div>
-          <label className="font-mono text-xs uppercase tracking-[0.1em] opacity-70">
-            To
-          </label>
+          <label className="text-sm font-medium opacity-70">To</label>
           <input
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
-            placeholder="Cross Street 9"
-            className="mt-1.5 w-full rounded-sm border border-line bg-transparent px-3 py-2 text-sm"
+            placeholder="9th Corridor"
+            className="mt-1.5 w-full rounded-xl border border-line bg-transparent px-3.5 py-2.5 text-sm"
           />
         </div>
         <button
           type="submit"
-          className="w-fit rounded-sm bg-ink px-4 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink-text transition-opacity hover:opacity-90"
+          className="w-fit rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-ink-text transition-opacity hover:opacity-90"
         >
           Plan safe route
         </button>
       </form>
 
-      <div className="rounded-sm border border-line bg-paper-2/50 p-6">
+      <div className="rounded-2xl bg-card-soft p-6">
         {!route ? (
           <p className="text-sm opacity-60">
-            Enter a start and end point to see a route that avoids verified
-            hotspots along the way.
+            Enter a start and end point to see a route that avoids verified hotspots along the
+            way.
           </p>
         ) : (
           <div className="flex flex-col gap-4">
@@ -93,10 +89,10 @@ export default function RoutePlanner() {
               )}
             </svg>
 
-            <dl className="grid grid-cols-2 gap-3 font-mono text-xs">
+            <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="opacity-50">Distance</dt>
-                <dd className="mt-1">{route.distanceKm} km</dd>
+                <dd className="mt-1">{route.distanceMiles} mi</dd>
               </div>
               <div>
                 <dt className="opacity-50">Duration</dt>
@@ -105,7 +101,7 @@ export default function RoutePlanner() {
             </dl>
 
             {route.avoided && (
-              <p className="stamp w-fit text-amber">
+              <p className="badge w-fit bg-amber/15 text-amber">
                 Detoured around {route.avoided.description}
               </p>
             )}

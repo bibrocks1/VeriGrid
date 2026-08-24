@@ -4,9 +4,10 @@ import { useState } from "react";
 import AuthorityReportCard from "./AuthorityReportCard";
 import { sendAuthorityReport } from "@/lib/api";
 
-// Approve & Send flow: draft -> approved -> sent, matching the status states
-// called out in the build guide. Approval is a separate, explicit step from
-// sending so a reviewer can sign off before anything reaches the authority.
+// Approve & Send flow: draft -> approved -> sent, matching the status
+// states called out in the build guide. Approval is a separate, explicit
+// step from sending so a reviewer can sign off before anything reaches the
+// authority.
 export default function ReportReviewScreen({ initialReport }) {
   const [report, setReport] = useState(initialReport);
   const [sending, setSending] = useState(false);
@@ -31,7 +32,7 @@ export default function ReportReviewScreen({ initialReport }) {
           type="button"
           onClick={approve}
           disabled={report.status !== "draft"}
-          className="rounded-sm bg-amber px-4 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full bg-amber px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           Approve
         </button>
@@ -39,9 +40,9 @@ export default function ReportReviewScreen({ initialReport }) {
           type="button"
           onClick={send}
           disabled={report.status !== "approved" || sending}
-          className="rounded-sm bg-verified px-4 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink-text disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full bg-verified px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {sending ? "Sending…" : "Approve & send"}
+          {sending ? "Sending." : "Approve and send"}
         </button>
       </div>
     </div>

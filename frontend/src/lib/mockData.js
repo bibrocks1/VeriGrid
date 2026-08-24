@@ -1,37 +1,37 @@
 // Demo-mode fixtures. Shaped exactly like the payloads the real endpoints
 // documented in lib/api.js are expected to return, so swapping a live
 // backend in later is a data-shape-compatible change, not a rewrite.
-// Locations are a fictional ward — no real hazard or address claims.
+// Centered on a real US city (MirEye's geospatial data currently only
+// covers US territory) with fictional street/location names — no real
+// hazard or address claims.
 
-export const MOCK_CENTER = { lat: 12.9716, lng: 77.5946 };
+export const MOCK_CENTER = { lat: 29.7604, lng: -95.3698 };
 
 export const MOCK_REPORTS = [
   {
     id: "r-101",
     category: "waterlogging",
-    description:
-      "Ankle-deep water outside the Ward 4 market gate since morning rain.",
-    lat: 12.9741,
-    lng: 77.5958,
+    description: "Ankle-deep water outside the Riverside Market entrance since morning rain.",
+    lat: 29.7629,
+    lng: -95.371,
     createdAt: "2026-08-19T06:40:00Z",
     reporterTrust: 61,
   },
   {
     id: "r-102",
     category: "road_damage",
-    description:
-      "Pothole cluster after the flyover ramp, cars swerving into the bike lane.",
-    lat: 12.9689,
-    lng: 77.5901,
+    description: "Pothole cluster after the freeway ramp, cars swerving into the bike lane.",
+    lat: 29.7577,
+    lng: -95.3653,
     createdAt: "2026-08-19T09:12:00Z",
     reporterTrust: 44,
   },
   {
     id: "r-103",
     category: "construction",
-    description: "Unbarricaded trench along the footpath near Cross Street 9.",
-    lat: 12.9702,
-    lng: 77.6003,
+    description: "Unbarricaded trench along the footpath near 9th Corridor.",
+    lat: 29.759,
+    lng: -95.3755,
     createdAt: "2026-08-20T05:02:00Z",
     reporterTrust: 38,
   },
@@ -43,10 +43,9 @@ export const MOCK_CLUSTERS = [
     category: "waterlogging",
     status: "verified",
     confidence: 78,
-    description:
-      "Recurring waterlogging at the Ward 4 market underpass during heavy rain.",
-    lat: 12.9744,
-    lng: 77.5961,
+    description: "Recurring waterlogging at the Riverside Market underpass during heavy rain.",
+    lat: 29.7632,
+    lng: -95.3713,
     reporterCount: 9,
     distinctReporters: 9,
     firstReportedAt: "2026-08-17T05:10:00Z",
@@ -57,9 +56,9 @@ export const MOCK_CLUSTERS = [
     category: "road_damage",
     status: "candidate",
     confidence: 41,
-    description: "Growing pothole belt on the flyover exit ramp.",
-    lat: 12.9686,
-    lng: 77.5897,
+    description: "Growing pothole belt on the freeway exit ramp.",
+    lat: 29.7574,
+    lng: -95.3649,
     reporterCount: 4,
     distinctReporters: 4,
     firstReportedAt: "2026-08-19T08:40:00Z",
@@ -70,10 +69,9 @@ export const MOCK_CLUSTERS = [
     category: "safety",
     status: "candidate",
     confidence: 29,
-    description:
-      "Streetlight outage along the canal walkway, reported unsafe after dusk.",
-    lat: 12.976,
-    lng: 77.5889,
+    description: "Streetlight outage along the bayou walkway, reported unsafe after dusk.",
+    lat: 29.7648,
+    lng: -95.3641,
     reporterCount: 3,
     distinctReporters: 3,
     firstReportedAt: "2026-08-19T18:05:00Z",
@@ -84,10 +82,9 @@ export const MOCK_CLUSTERS = [
     category: "environmental",
     status: "verified",
     confidence: 66,
-    description:
-      "Open garbage burning near the canal bank, smoke reaching residential blocks.",
-    lat: 12.9668,
-    lng: 77.5972,
+    description: "Open garbage burning near the bayou bank, smoke reaching residential blocks.",
+    lat: 29.7558,
+    lng: -95.3722,
     reporterCount: 7,
     distinctReporters: 6,
     firstReportedAt: "2026-08-15T07:00:00Z",
@@ -106,21 +103,21 @@ export const MOCK_CHAT_HISTORY = [
     id: "m-1",
     role: "assistant",
     source: null,
-    text: "Ask me about hazards or infrastructure near a point on the map — I'll pull from verified VeriGrid reports and MirEye's infrastructure records.",
+    text: "Ask me about hazards or infrastructure near a point on the map. I'll pull from verified VeriGrid reports and MirEye's infrastructure records.",
   },
 ];
 
 export const MOCK_AUTHORITY_REPORT = {
   clusterId: "c-201",
   issueType: "Waterlogging",
-  location: "Ward 4 Market Underpass, Cross Street 9",
+  location: "Riverside Market Underpass, 9th Corridor",
   severity: "High",
   confidence: 78,
   contributorCount: 9,
-  identifiedAuthority: "Ward 4 Municipal Engineering Office",
+  identifiedAuthority: "District 4 Municipal Engineering Office",
   status: "draft",
   draftText:
-    "Recurring waterlogging reported at the Ward 4 market underpass during rainfall, confirmed by 9 independent reporters over 36 hours. Confidence score 78/100 (verified). Requests drainage inspection ahead of the next forecast rainfall.",
+    "Recurring waterlogging reported at the Riverside Market underpass during rainfall, confirmed by 9 independent reporters over 36 hours. Confidence score 78/100 (verified). Requests drainage inspection ahead of the next forecast rainfall.",
 };
 
 export const MOCK_SYNC_LOG = {

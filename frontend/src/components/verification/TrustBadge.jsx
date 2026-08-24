@@ -6,11 +6,11 @@ export default function TrustBadge({ trust, size = "sm" }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-mono ${textSize} tabular-nums opacity-80`}
+      className={`inline-flex items-center gap-1.5 ${textSize} font-medium tabular-nums opacity-80`}
       title="Reporter trust score"
     >
       <span className="h-1.5 w-1.5 rounded-full bg-verified" aria-hidden />
-      trust {trust}
+      Trust {trust}
     </span>
   );
 }

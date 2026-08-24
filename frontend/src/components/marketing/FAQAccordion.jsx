@@ -10,7 +10,7 @@ export default function FAQAccordion({ items }) {
       {items.map((item, i) => {
         const isOpen = openIndex === i;
         return (
-          <div key={item.question}>
+          <div key={item.question} className="px-4">
             <button
               type="button"
               onClick={() => setOpenIndex(isOpen ? -1 : i)}
@@ -21,7 +21,7 @@ export default function FAQAccordion({ items }) {
                 {item.question}
               </span>
               <span
-                className="font-mono text-lg leading-none opacity-60 transition-transform"
+                className="text-xl leading-none opacity-60 transition-transform"
                 style={{ transform: isOpen ? "rotate(45deg)" : "none" }}
                 aria-hidden
               >
@@ -29,9 +29,7 @@ export default function FAQAccordion({ items }) {
               </span>
             </button>
             {isOpen && (
-              <p className="pb-5 pr-10 text-sm leading-relaxed opacity-75">
-                {item.answer}
-              </p>
+              <p className="pb-5 pr-10 text-sm leading-relaxed opacity-75">{item.answer}</p>
             )}
           </div>
         );

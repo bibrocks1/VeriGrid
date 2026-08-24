@@ -126,19 +126,23 @@ def list_nearby_reports(
     db: Session = Depends(get_db),
 ):
     """Day 5: reports within `radius_m` meters of (lat, lng), optionally
-    filtered by category. Uses PostGIS ST_DWithin on the Geography column,
-    which operates in real meters (not degrees)."""
+    filtered by category. Uses PostGIS ST_DWithin/ST_Distance on the
+    Geography column, which operate in real meters (not degrees)."""
     origin = from_shape(Point(lng, lat), srid=4326)
+    distance = func.ST_Distance(Report.geom, origin).label("distance_m")
     query = (
-        db.query(Report)
+        db.query(Report, distance)
         .options(joinedload(Report.user))
         .filter(func.ST_DWithin(Report.geom, origin, radius_m))
+        .order_by(distance)
     )
     if category is not None:
         query = query.filter(Report.category == category)
 
-    reports = query.all()
-    return [_report_to_dict(r) for r in reports]
+    return [
+        {**_report_to_dict(report), "distanceM": round(distance_m, 1)}
+        for report, distance_m in query.all()
+    ]
 
 
 @app.get("/clusters")

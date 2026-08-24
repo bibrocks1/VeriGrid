@@ -14,6 +14,7 @@ import {
   MOCK_SYNC_LOG,
 } from "./mockData";
 import { getDeviceId } from "./deviceId";
+import { haversineMeters } from "./geo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -47,6 +48,22 @@ export function getClusters() {
 
 export function getStats() {
   return withFallback(() => client.get("/stats"), MOCK_STATS);
+}
+
+// Day 5: reports within `radiusM` of (lat, lng), closest first, each
+// carrying `distanceM`. Demo-mode fallback computes the same thing against
+// the mock fixtures with the same haversine math the backend uses server-
+// side (PostGIS ST_Distance), so the UI behaves identically either way.
+export function getNearbyReports({ lat, lng, radiusM = 500, category } = {}) {
+  const params = { lat, lng, radius_m: radiusM };
+  if (category) params.category = category;
+
+  const fallback = MOCK_REPORTS.filter((r) => !category || r.category === category)
+    .map((r) => ({ ...r, distanceM: haversineMeters(lat, lng, r.lat, r.lng) }))
+    .filter((r) => r.distanceM <= radiusM)
+    .sort((a, b) => a.distanceM - b.distanceM);
+
+  return withFallback(() => client.get("/reports/nearby", { params }), fallback);
 }
 
 export function createReport(payload) {
