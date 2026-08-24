@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from geoalchemy2 import WKTElement
 from geoalchemy2 import Geometry
+from mireye_adapter import get_area_context
 from consensus import update_cluster_confidence
 from database import get_db
 from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut
@@ -60,6 +61,12 @@ def create_report(
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
+    mireye_context = None
+    
+    try:
+        mireye_context = get_area_context(report.lat, report.lon)
+    except Exception as e:
+            print(f"MirEye context unavailable: {e}")
 
     run_clustering_for_category(
     db,
@@ -71,6 +78,7 @@ def create_report(
         db,
         db_report.cluster_id
         )
+    
     return ReportOut(
         id=db_report.id,
         user_id=db_report.user_id,
