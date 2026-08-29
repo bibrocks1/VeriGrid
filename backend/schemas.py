@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
 from models import ReportCategory, ClusterStatus
-# What does the API key return/accept
+
 
 class ReportCreate(BaseModel):
-    user_id: int
+    user_id: UUID
     category: ReportCategory
     description: Optional[str] = None
     lat: float
@@ -15,8 +16,8 @@ class ReportCreate(BaseModel):
 
 
 class ReportOut(BaseModel):
-    id: int
-    user_id: int
+    id: UUID
+    user_id: UUID
     category: ReportCategory
     description: Optional[str] = None
     lat: float
@@ -49,15 +50,3 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-
-class ClusterOut(BaseModel):
-    id: int
-    category: str
-    status: str
-    confidence: int
-    report_count: int
-    lat: float
-    lon: float
-
-    class Config:
-        from_attributes = True

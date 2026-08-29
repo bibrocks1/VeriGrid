@@ -7,6 +7,27 @@ from models import User, Report, HazardCluster, ClusterStatus
 CANDIDATE_THRESHOLD = 25
 VERIFIED_THRESHOLD = 60
 
+# A single high-trust user shouldn't be able to single-handedly push a
+# cluster's confidence up by having an outsized trust_score — cap each
+# user's contribution before averaging. (Previously this cap existed
+# only in the design notes, not in the code: the average was computed
+# from raw, uncapped trust_score values.)
+PER_USER_TRUST_CAP = 25
+
+
+def compute_confidence_score(report_count: int, unique_user_count: int, average_trust: float) -> int:
+    """
+    Pure scoring function, independent of the DB — takes already-computed
+    aggregates and returns a 0-100 confidence score. Extracted so this
+    logic can be unit tested without a database (see test_consensus.py).
+    """
+    report_score = min(report_count * 10, 40)
+    user_score = min(unique_user_count * 10, 30)
+    trust_score = min(int(average_trust), 30)
+
+    confidence = report_score + user_score + trust_score
+    return min(confidence, 100)
+
 
 def calculate_confidence(db: Session, cluster: HazardCluster) -> int:
     """
@@ -15,7 +36,7 @@ def calculate_confidence(db: Session, cluster: HazardCluster) -> int:
     Confidence is based on:
     - number of reports
     - number of unique users
-    - average trust score of those users
+    - average (per-user-capped) trust score of those users
     """
 
     reports = (
@@ -42,29 +63,20 @@ def calculate_confidence(db: Session, cluster: HazardCluster) -> int:
         .all()
     )
 
-    # Average trust score
+    # Average trust score, with each user's contribution capped so no
+    # single high-trust user can dominate the average.
     if users:
         average_trust = sum(
-            user.trust_score for user in users
+            min(user.trust_score, PER_USER_TRUST_CAP) for user in users
         ) / len(users)
     else:
         average_trust = 0
 
-    report_count = len(reports)
-    unique_user_count = len(user_ids)
-
-    # Score components
-    report_score = min(report_count * 10, 40)
-    user_score = min(unique_user_count * 10, 30)
-    trust_score = min(int(average_trust), 30)
-
-    confidence = (
-        report_score
-        + user_score
-        + trust_score
+    return compute_confidence_score(
+        report_count=len(reports),
+        unique_user_count=len(user_ids),
+        average_trust=average_trust,
     )
-
-    return min(confidence, 100)
 
 
 def update_cluster_confidence(

@@ -1,13 +1,13 @@
 import enum
 from datetime import datetime, timezone
 
-from geoalchemy2 import Geography
-from sqlalchemy import Column, DateTime, ForeignKey, Integer
+from geoalchemy2 import Geometry
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Text, text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Text
 from sqlalchemy.orm import relationship
-from database import Base
 
+from database import Base
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -30,11 +30,21 @@ class ClusterStatus(str, enum.Enum):
     verified = "verified"    # confidence >= 60, pushed to MirEye
 
 
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    trust_score = Column(Integer, nullable=False, default=10)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
+    )
+
+    trust_score = Column(
+        Float,
+        default=10.0,
+        nullable=False
+    )
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     reports = relationship("Report", back_populates="user")
@@ -46,15 +56,24 @@ class User(Base):
 class Report(Base):
     __tablename__ = "reports"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
+    )
+
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False
+    )
 
     category = Column(SAEnum(ReportCategory), nullable=False, index=True)
     description = Column(Text, nullable=True)
 
     # Geography (not Geometry) so ST_DWithin / ST_Distance return real meters,
     # not degrees. SRID 4326 = standard lat/lon (WGS84).
-    geom = Column(Geography(geometry_type="POINT", srid=4326), nullable=False)
+    geom = Column(Geometry(geometry_type="POINT", srid=4326), nullable=False)
 
     # Nullable: a report starts unclustered, DBSCAN assigns this on Day 6.
     cluster_id = Column(Integer, ForeignKey("hazard_clusters.id"), nullable=True, index=True)
@@ -75,7 +94,7 @@ class HazardCluster(Base):
     category = Column(SAEnum(ReportCategory), nullable=False, index=True)
 
     # Centroid of all member reports, recomputed whenever a report joins the cluster.
-    geom = Column(Geography(geometry_type="POINT", srid=4326), nullable=False)
+    geom = Column(Geometry(geometry_type="POINT", srid=4326), nullable=False)
 
     status = Column(SAEnum(ClusterStatus), nullable=False, default=ClusterStatus.forming, index=True)
     confidence = Column(Integer, nullable=False, default=0)
