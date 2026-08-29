@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Text, text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
@@ -105,5 +105,15 @@ class HazardCluster(Base):
 
     reports = relationship("Report", back_populates="cluster")
 
+    severity = Column(String(20), nullable=True)
+
+    explanation = Column(Text, nullable=True)
+
+    recommended_action = Column(Text, nullable=True)
+
+    assessed_at = Column(
+    DateTime(timezone=True),
+    nullable=True,
+    )
     def __repr__(self):
         return f"<HazardCluster id={self.id} status={self.status} confidence={self.confidence}>"

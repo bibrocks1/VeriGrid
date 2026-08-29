@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from geoalchemy2 import WKTElement
 from geoalchemy2 import Geometry
-from mireye_adapter import get_area_context
+from adapters.mireye_adapter import get_area_context
 from consensus import update_cluster_confidence
 from database import get_db
 from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut
@@ -13,9 +13,10 @@ from sqlalchemy import Float
 
 from schemas import ReportOut
 
-from models import Report, HazardCluster
+from models import ClusterStatus, Report, HazardCluster
 
 from clustering import run_clustering_for_category
+
 
 from schemas import (
     ChatRequest,
@@ -24,6 +25,10 @@ from schemas import (
     ReportOut,
     ClusterOut
 )
+
+from reasoning.retrieval import retrieve_context
+from reasoning.agent import assess_hazard
+
 
 app = FastAPI(title="VeriGrid API")
 
@@ -35,60 +40,57 @@ def health_check():
         "message": "Backend is running!"
     }
 
-
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
-    return ChatResponse(
-        answer="Chat functionality coming soon."
-    )
-
-
-@app.post("/reports", response_model=ReportOut)
-def create_report(
-    report: ReportCreate,
-    db: Session = Depends(get_db)
+def chat(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
 ):
-    db_report = Report(
-        user_id=report.user_id,
-        category=report.category,
-        description=report.description,
-        geom=WKTElement(
-            f"POINT({report.lon} {report.lat})",
-            srid=4326
-        )
-    )
+    """
+    Location-aware hazard reasoning endpoint.
 
-    db.add(db_report)
-    db.commit()
-    db.refresh(db_report)
-    mireye_context = None
-    
+    Flow:
+        user question
+            ↓
+        retrieve VeriGrid + MirEye + NOAA
+            ↓
+        OpenAI reasoning agent
+            ↓
+        grounded answer
+    """
+
     try:
-        mireye_context = get_area_context(report.lat, report.lon)
-    except Exception as e:
-            print(f"MirEye context unavailable: {e}")
-
-    run_clustering_for_category(
-    db,
-    db_report.category
-    )
-
-    if db_report.cluster_id:
-        update_cluster_confidence(
-        db,
-        db_report.cluster_id
+        # 1. Retrieve evidence around the requested location
+        context = retrieve_context(
+            db=db,
+            lat=request.lat,
+            lon=request.lon,
+            radius_m=5000,
         )
-    
-    return ReportOut(
-        id=db_report.id,
-        user_id=db_report.user_id,
-        category=db_report.category,
-        description=db_report.description,
-        lat=report.lat,
-        lon=report.lon,
-        cluster_id=db_report.cluster_id,
-        created_at=db_report.created_at
-    )
+
+        # 2. Ask the reasoning agent to assess the evidence
+        result = assess_hazard(
+            question=request.question,
+            context=context,
+        )
+
+        # 3. Convert structured reasoning into a user-facing answer
+        answer = (
+            f"Severity: {result['severity']}\n\n"
+            f"Explanation: {result['explanation']}\n\n"
+            f"Recommended Action: {result['recommended_action']}\n\n"
+            f"Evidence:\n"
+            f"- VeriGrid: {result['evidence_summary']['verigrid']}\n"
+            f"- MirEye: {result['evidence_summary']['mireye']}\n"
+            f"- NOAA: {result['evidence_summary']['noaa']}"
+        )
+
+        return ChatResponse(answer=answer)
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to process hazard query: {exc}",
+        )
 
 @app.get("/reports", response_model=list[ReportOut])
 def get_reports(db: Session = Depends(get_db)):
