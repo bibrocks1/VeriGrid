@@ -6,8 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from adapters.routing_adapter import RoutingAPIError
-from clustering import run_clustering_for_category
-from consensus import update_cluster_confidence
+from clustering import recompute_clusters_for_category
 from database import get_db
 from mireye_service import CATEGORY_PRESET, fetch_area_context, score_report_credibility
 from models import (
@@ -163,9 +162,10 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(report)
 
-    touched_ids = run_clustering_for_category(db, payload.category)
-    for cluster_id in touched_ids:
-        update_cluster_confidence(db, cluster_id)
+    # Recomputes confidence for every touched cluster internally, and
+    # prunes clusters left with no members — matching the doc's "trigger
+    # this inline after report submission" option.
+    recompute_clusters_for_category(db, payload.category)
     db.refresh(report)
 
     return _report_to_dict(report)
