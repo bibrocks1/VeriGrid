@@ -29,7 +29,9 @@ export default function FAQAccordion({ items }) {
               </span>
             </button>
             {isOpen && (
-              <p className="pb-5 pr-10 text-sm leading-relaxed opacity-75">{item.answer}</p>
+              <p className="pb-5 pr-10 text-sm leading-relaxed opacity-75">
+                {item.answer}
+              </p>
             )}
           </div>
         );

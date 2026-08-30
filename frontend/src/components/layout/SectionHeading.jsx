@@ -11,7 +11,11 @@ export default function SectionHeading({
   children,
 }) {
   return (
-    <div className={align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}>
+    <div
+      className={
+        align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"
+      }
+    >
       {eyebrow && (
         <p
           className={`mb-3 flex items-center gap-2 text-sm font-medium text-muted ${
@@ -25,7 +29,9 @@ export default function SectionHeading({
         {title}
       </h2>
       {description && (
-        <p className="mt-4 text-base leading-relaxed text-muted sm:text-lg">{description}</p>
+        <p className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
+          {description}
+        </p>
       )}
       {children}
     </div>

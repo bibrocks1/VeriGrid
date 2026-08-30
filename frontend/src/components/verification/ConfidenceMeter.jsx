@@ -15,15 +15,23 @@ export default function ConfidenceMeter({ confidence, status }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <span className="badge capitalize" style={{ backgroundColor: `${color}22`, color }}>
+        <span
+          className="badge capitalize"
+          style={{ backgroundColor: `${color}22`, color }}
+        >
           {status}
         </span>
-        <span className="text-sm tabular-nums opacity-70">{confidence}/100</span>
+        <span className="text-sm tabular-nums opacity-70">
+          {confidence}/100
+        </span>
       </div>
       <div className="relative mt-3 h-2 w-full overflow-hidden rounded-full bg-current/10">
         <div
           className="h-full rounded-full transition-[width]"
-          style={{ width: `${Math.min(confidence, 100)}%`, backgroundColor: color }}
+          style={{
+            width: `${Math.min(confidence, 100)}%`,
+            backgroundColor: color,
+          }}
         />
         <div
           className="absolute top-0 h-full w-px bg-current/30"

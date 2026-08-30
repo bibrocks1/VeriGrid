@@ -11,7 +11,9 @@ export default function StepDiagram({ steps }) {
             {i + 1}
           </span>
           <h3 className="font-display text-lg font-semibold">{step.title}</h3>
-          <p className="text-sm leading-relaxed opacity-70">{step.description}</p>
+          <p className="text-sm leading-relaxed opacity-70">
+            {step.description}
+          </p>
         </li>
       ))}
     </ol>

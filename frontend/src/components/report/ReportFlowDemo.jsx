@@ -15,7 +15,10 @@ export default function ReportFlowDemo() {
   return (
     <div className="rounded-3xl bg-card p-6 shadow-soft sm:p-8">
       {submitted ? (
-        <ReportConfirmation report={submitted} onReset={() => setSubmitted(null)} />
+        <ReportConfirmation
+          report={submitted}
+          onReset={() => setSubmitted(null)}
+        />
       ) : (
         <>
           <NearbyReportsList lat={MOCK_CENTER.lat} lng={MOCK_CENTER.lng} />

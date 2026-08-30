@@ -5,7 +5,7 @@ import SectionHeading from "@/components/layout/SectionHeading";
 import StepDiagram from "@/components/marketing/StepDiagram";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import MapCanvasLoader from "@/components/map/MapCanvasLoader";
-import RoutePlanner from "@/components/map/RoutePlanner";
+import RoutePlannerLoader from "@/components/map/RoutePlannerLoader";
 import ReportFlowDemo from "@/components/report/ReportFlowDemo";
 import VerificationExplainer from "@/components/verification/VerificationExplainer";
 import ChatPanel from "@/components/chat/ChatPanel";
@@ -18,23 +18,28 @@ import {
   getAuthorityReport,
   getSyncStatus,
 } from "@/lib/api";
+import { MOCK_AUTHORITY_REPORT } from "@/lib/mockData";
 
 const REPORT_STEPS = [
   {
     title: "Report",
-    description: "A citizen files a hazard report with a category, description, and location.",
+    description:
+      "A citizen files a hazard report with a category, description, and location.",
   },
   {
     title: "Cluster",
-    description: "Nearby reports of the same hazard are grouped into a candidate cluster.",
+    description:
+      "Nearby reports of the same hazard are grouped into a candidate cluster.",
   },
   {
     title: "Consensus",
-    description: "Each distinct reporter raises the cluster's confidence score.",
+    description:
+      "Each distinct reporter raises the cluster's confidence score.",
   },
   {
     title: "Verified",
-    description: "At 60+ confidence the cluster is verified and routed toward authorities.",
+    description:
+      "At 60+ confidence the cluster is verified and routed toward authorities.",
   },
 ];
 
@@ -67,14 +72,22 @@ const FAQ_ITEMS = [
 // see lib/api.js. Unchanged from before this redesign: same fetches, same
 // components, same wiring, only presentation and copy changed below.
 export default async function Home() {
-  const [reportsRes, clustersRes, statsRes, authorityRes, syncRes] = await Promise.all([
+  const [reportsRes, clustersRes, statsRes, syncRes] = await Promise.all([
     getReports(),
     getClusters(),
     getStats(),
-    getAuthorityReport("c-201"),
     getSyncStatus(),
   ]);
   const stats = statsRes.data;
+
+  // The authority-report demo needs a real verified cluster id — there's
+  // no fixed one to hardcode now that clusters come from live data. Uses
+  // whichever verified cluster exists; falls back to the fixture only if
+  // none has formed yet (e.g. a freshly seeded database).
+  const verifiedCluster = clustersRes.data.find((c) => c.status === "verified");
+  const authorityRes = verifiedCluster
+    ? await getAuthorityReport(verifiedCluster.id)
+    : { data: MOCK_AUTHORITY_REPORT, source: "demo" };
 
   return (
     <div id="top" className="flex flex-1 flex-col font-body">
@@ -83,17 +96,23 @@ export default async function Home() {
       <main className="flex flex-1 flex-col">
         {/* Hero */}
         <Section tone="paper" className="relative overflow-hidden">
-          <div className="bg-grid-hero pointer-events-none absolute inset-0" aria-hidden />
+          <div
+            className="bg-grid-hero pointer-events-none absolute inset-0"
+            aria-hidden
+          />
           <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
-            <p className="mb-5 text-sm font-medium text-muted">Live hazard verification</p>
+            <p className="mb-5 text-sm font-medium text-muted">
+              Live hazard verification
+            </p>
             <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
               One report is a rumor.
               <br />
               Nine make it <span className="text-verified">verified</span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              VeriGrid confirms hazard reports through independent-reporter consensus, layers in
-              MirEye infrastructure data, and routes verified issues to the right authority.
+              VeriGrid confirms hazard reports through independent-reporter
+              consensus, layers in MirEye infrastructure data, and routes
+              verified issues to the right authority.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-5">
               <a
@@ -111,8 +130,8 @@ export default async function Home() {
             </div>
             <p className="mt-8 text-sm text-muted">
               {stats.activeReports.toLocaleString()} active reports &middot;{" "}
-              {stats.verifiedHotspots.toLocaleString()} verified hotspots &middot;{" "}
-              {stats.trustContributors.toLocaleString()} contributors
+              {stats.verifiedHotspots.toLocaleString()} verified hotspots
+              &middot; {stats.trustContributors.toLocaleString()} contributors
             </p>
           </div>
         </Section>
@@ -125,7 +144,10 @@ export default async function Home() {
             description="Raw reports, candidate clusters, and verified hotspots, filterable by category, with click-to-report built into the map itself."
           />
           <div className="mt-10 overflow-hidden rounded-3xl bg-ink-card p-3 shadow-soft sm:p-4">
-            <MapCanvasLoader reports={reportsRes.data} clusters={clustersRes.data} />
+            <MapCanvasLoader
+              reports={reportsRes.data}
+              clusters={clustersRes.data}
+            />
           </div>
         </Section>
 
@@ -168,11 +190,11 @@ export default async function Home() {
         {/* Safe routing */}
         <Section tone="paper">
           <SectionHeading
-            title="Routes that detour around verified hazards"
-            description="Plan a route and VeriGrid checks it against verified hotspots along the corridor, rerouting when one sits in the way."
+            title="Routes that warn you about verified hazards"
+            description="Plan a route and VeriGrid checks the actual OSRM path against verified hotspots along the way, flagging any that sit too close."
           />
           <div className="mt-10">
-            <RoutePlanner />
+            <RoutePlannerLoader />
           </div>
         </Section>
 

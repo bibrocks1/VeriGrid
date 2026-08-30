@@ -11,7 +11,8 @@ export const MOCK_REPORTS = [
   {
     id: "r-101",
     category: "waterlogging",
-    description: "Ankle-deep water outside the Riverside Market entrance since morning rain.",
+    description:
+      "Ankle-deep water outside the Riverside Market entrance since morning rain.",
     lat: 29.7629,
     lng: -95.371,
     createdAt: "2026-08-19T06:40:00Z",
@@ -20,7 +21,8 @@ export const MOCK_REPORTS = [
   {
     id: "r-102",
     category: "road_damage",
-    description: "Pothole cluster after the freeway ramp, cars swerving into the bike lane.",
+    description:
+      "Pothole cluster after the freeway ramp, cars swerving into the bike lane.",
     lat: 29.7577,
     lng: -95.3653,
     createdAt: "2026-08-19T09:12:00Z",
@@ -43,7 +45,8 @@ export const MOCK_CLUSTERS = [
     category: "waterlogging",
     status: "verified",
     confidence: 78,
-    description: "Recurring waterlogging at the Riverside Market underpass during heavy rain.",
+    description:
+      "Recurring waterlogging at the Riverside Market underpass during heavy rain.",
     lat: 29.7632,
     lng: -95.3713,
     reporterCount: 9,
@@ -69,7 +72,8 @@ export const MOCK_CLUSTERS = [
     category: "safety",
     status: "candidate",
     confidence: 29,
-    description: "Streetlight outage along the bayou walkway, reported unsafe after dusk.",
+    description:
+      "Streetlight outage along the bayou walkway, reported unsafe after dusk.",
     lat: 29.7648,
     lng: -95.3641,
     reporterCount: 3,
@@ -82,7 +86,8 @@ export const MOCK_CLUSTERS = [
     category: "environmental",
     status: "verified",
     confidence: 66,
-    description: "Open garbage burning near the bayou bank, smoke reaching residential blocks.",
+    description:
+      "Open garbage burning near the bayou bank, smoke reaching residential blocks.",
     lat: 29.7558,
     lng: -95.3722,
     reporterCount: 7,
@@ -124,4 +129,41 @@ export const MOCK_SYNC_LOG = {
   lastSyncedAt: "2026-08-20T04:15:00Z",
   status: "ok",
   recordsSynced: 214,
+};
+
+// A schematic straight line rather than a real OSRM shape — demo mode has
+// no live backend to ask, so this only needs to exercise the same draw
+// path (polyline + markers + warnings) as a real route.
+export const MOCK_ROUTE = {
+  geometry: [
+    [29.7604, -95.3698],
+    [29.7629, -95.371],
+    [29.765, -95.374],
+    [29.767, -95.3775],
+  ],
+  distanceM: 4184,
+  durationS: 620,
+  steps: [
+    { instruction: "Depart onto Bagby Street", distanceM: 400, durationS: 60 },
+    {
+      instruction: "Turn (right) onto Allen Parkway",
+      distanceM: 2200,
+      durationS: 300,
+    },
+    {
+      instruction: "Turn (left) onto 9th Corridor",
+      distanceM: 1584,
+      durationS: 260,
+    },
+  ],
+  hazardWarnings: [
+    {
+      clusterId: "demo-c-1",
+      category: "waterlogging",
+      lat: 29.765,
+      lng: -95.374,
+      distanceM: 60,
+      confidence: 72,
+    },
+  ],
 };

@@ -12,6 +12,7 @@ import {
   MOCK_STATS,
   MOCK_AUTHORITY_REPORT,
   MOCK_SYNC_LOG,
+  MOCK_ROUTE,
 } from "./mockData";
 import { getDeviceId } from "./deviceId";
 import { haversineMeters } from "./geo";
@@ -58,12 +59,17 @@ export function getNearbyReports({ lat, lng, radiusM = 500, category } = {}) {
   const params = { lat, lng, radius_m: radiusM };
   if (category) params.category = category;
 
-  const fallback = MOCK_REPORTS.filter((r) => !category || r.category === category)
+  const fallback = MOCK_REPORTS.filter(
+    (r) => !category || r.category === category,
+  )
     .map((r) => ({ ...r, distanceM: haversineMeters(lat, lng, r.lat, r.lng) }))
     .filter((r) => r.distanceM <= radiusM)
     .sort((a, b) => a.distanceM - b.distanceM);
 
-  return withFallback(() => client.get("/reports/nearby", { params }), fallback);
+  return withFallback(
+    () => client.get("/reports/nearby", { params }),
+    fallback,
+  );
 }
 
 export function createReport(payload) {
@@ -98,4 +104,16 @@ export function sendAuthorityReport(clusterId) {
 
 export function getSyncStatus() {
   return withFallback(() => client.get("/mireye/sync-log"), MOCK_SYNC_LOG);
+}
+
+// Day 10: OSRM -> route geometry -> VeriGrid checks geometry against
+// hazards -> safe route response (see backend/routing.py).
+export function getSafeRoute({ originLat, originLng, destLat, destLng }) {
+  const params = {
+    origin_lat: originLat,
+    origin_lng: originLng,
+    dest_lat: destLat,
+    dest_lng: destLng,
+  };
+  return withFallback(() => client.get("/route/safe", { params }), MOCK_ROUTE);
 }

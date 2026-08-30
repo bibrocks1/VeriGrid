@@ -91,7 +91,11 @@ body {
       rgba(10, 10, 10, 0.03) 61px,
       rgba(10, 10, 10, 0.03) 62px
     );
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 90%);
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 30%,
+    black,
+    transparent 90%
+  );
 }
 
 /* Pill status badge — replaces the old dashed "stamp" motif with a solid

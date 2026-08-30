@@ -15,9 +15,13 @@ export default function AuthorityReportCard({ report }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium opacity-60">{report.location}</p>
-          <h3 className="mt-1 font-display text-xl font-bold">{report.issueType}</h3>
+          <h3 className="mt-1 font-display text-xl font-bold">
+            {report.issueType}
+          </h3>
         </div>
-        <span className="badge bg-amber/15 text-amber">{STATUS_LABEL[report.status]}</span>
+        <span className="badge bg-amber/15 text-amber">
+          {STATUS_LABEL[report.status]}
+        </span>
       </div>
 
       <ConfidenceMeter confidence={report.confidence} status="verified" />

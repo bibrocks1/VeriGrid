@@ -8,10 +8,13 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="max-w-xs">
-            <span className="font-display text-lg font-bold text-paper-text">VeriGrid</span>
+            <span className="font-display text-lg font-bold text-paper-text">
+              VeriGrid
+            </span>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              Crowdsourced hazard verification, backed by MirEye infrastructure data. Built to
-              route confirmed issues to the right authority, fast.
+              Crowdsourced hazard verification, backed by MirEye infrastructure
+              data. Built to route confirmed issues to the right authority,
+              fast.
             </p>
           </div>
 
@@ -35,8 +38,12 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} VeriGrid. Built for a 14-day pilot.</p>
-          {isDemoMode && <p className="badge bg-amber/15 text-amber">Demo mode, mock data</p>}
+          <p>
+            © {new Date().getFullYear()} VeriGrid. Built for a 14-day pilot.
+          </p>
+          {isDemoMode && (
+            <p className="badge bg-amber/15 text-amber">Demo mode, mock data</p>
+          )}
         </div>
       </div>
     </footer>

@@ -22,7 +22,12 @@ export default function ChatPanel() {
     const text = input.trim();
     if (!text || sending) return;
 
-    const userMessage = { id: `u-${Date.now()}`, role: "user", source: null, text };
+    const userMessage = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      source: null,
+      text,
+    };
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInput("");
@@ -36,7 +41,12 @@ export default function ChatPanel() {
 
     setMessages((current) => [
       ...current,
-      { id: `a-${Date.now()}`, role: "assistant", source: data.source ?? "verigrid", text: data.text },
+      {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        source: data.source ?? "verigrid",
+        text: data.text,
+      },
     ]);
     setSending(false);
   }
@@ -50,12 +60,22 @@ export default function ChatPanel() {
 
       <div className="flex max-h-80 flex-col gap-4 overflow-y-auto py-2">
         {messages.map((m) => (
-          <ChatMessage key={m.id} role={m.role} source={m.source} text={m.text} />
+          <ChatMessage
+            key={m.id}
+            role={m.role}
+            source={m.source}
+            text={m.text}
+          />
         ))}
-        {sending && <p className="text-sm opacity-50">VeriGrid is checking sources.</p>}
+        {sending && (
+          <p className="text-sm opacity-50">VeriGrid is checking sources.</p>
+        )}
       </div>
 
-      <form onSubmit={handleSend} className="flex gap-2 border-t border-line pt-4">
+      <form
+        onSubmit={handleSend}
+        className="flex gap-2 border-t border-line pt-4"
+      >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

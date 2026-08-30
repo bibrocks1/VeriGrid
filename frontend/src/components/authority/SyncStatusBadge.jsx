@@ -13,9 +13,15 @@ export default function SyncStatusBadge({ sync }) {
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm font-medium shadow-soft">
-      <span className={`h-2 w-2 rounded-full ${isOk ? "bg-verified" : "bg-hazard"}`} aria-hidden />
-      MirEye sync {isOk ? "ok" : "failed"} &middot; {formatRelativeTime(sync.lastSyncedAt)} &middot;{" "}
-      {sync.recordsSynced.toLocaleString()} records
+      <span
+        className={`h-2 w-2 rounded-full ${isOk ? "bg-verified" : "bg-hazard"}`}
+        aria-hidden
+      />
+      MirEye sync {isOk ? "ok" : "failed"} &middot;{" "}
+      {sync.lastSyncedAt
+        ? formatRelativeTime(sync.lastSyncedAt)
+        : "no syncs yet"}{" "}
+      &middot; {sync.recordsSynced.toLocaleString()} records
     </div>
   );
 }

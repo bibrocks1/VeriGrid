@@ -13,11 +13,17 @@ export default function MapLayerToggle({ activeLayers, onToggle }) {
             aria-pressed={isActive}
             title={layer.description}
             className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              isActive ? "border-current bg-current/10" : "border-line-dark/50 opacity-50"
+              isActive
+                ? "border-current bg-current/10"
+                : "border-line-dark/50 opacity-50"
             }`}
             style={{ color: layer.color }}
           >
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: layer.color }} aria-hidden />
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: layer.color }}
+              aria-hidden
+            />
             {layer.label}
           </button>
         );
