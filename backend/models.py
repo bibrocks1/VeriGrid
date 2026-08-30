@@ -29,7 +29,10 @@ class ClusterStatus(str, enum.Enum):
     candidate = "candidate"  # confidence >= 25
     verified = "verified"    # confidence >= 60, pushed to MirEye
 
-
+class ComplaintStatus(str, enum.Enum):
+    draft = "draft"
+    approved = "approved"
+    sent = "sent"
 
 class User(Base):
     __tablename__ = "users"
@@ -117,3 +120,26 @@ class HazardCluster(Base):
     )
     def __repr__(self):
         return f"<HazardCluster id={self.id} status={self.status} confidence={self.confidence}>"
+
+class AuthorityComplaint(Base):
+    __tablename__ = "authority_complaints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cluster_id = Column(Integer, ForeignKey("hazard_clusters.id"), nullable=False, index=True)
+
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    severity = Column(String(20), nullable=True)
+    recommended_action = Column(Text, nullable=True)
+    responsible_authority = Column(String(255), nullable=False)
+
+    status = Column(SAEnum(ComplaintStatus), nullable=False, default=ComplaintStatus.draft, index=True)
+
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+
+    cluster = relationship("HazardCluster")
+
+    def __repr__(self):
+        return f"<AuthorityComplaint id={self.id} cluster_id={self.cluster_id} status={self.status}>"

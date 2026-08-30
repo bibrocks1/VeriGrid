@@ -4,8 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from models import ReportCategory, ClusterStatus
-
+from models import ReportCategory, ClusterStatus, ComplaintStatus
 
 class ReportCreate(BaseModel):
     user_id: UUID
@@ -37,6 +36,10 @@ class ClusterOut(BaseModel):
     report_count: int
     lat: float
     lon: float
+    severity: Optional[str] = None
+    explanation: Optional[str] = None
+    recommended_action: Optional[str] = None
+    assessed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -50,3 +53,20 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+
+
+class ComplaintOut(BaseModel):
+    id: int
+    cluster_id: int
+    title: str
+    description: str
+    severity: Optional[str] = None
+    recommended_action: Optional[str] = None
+    responsible_authority: str
+    status: ComplaintStatus
+    created_at: datetime
+    approved_at: Optional[datetime] = None
+    sent_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

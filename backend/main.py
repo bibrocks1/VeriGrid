@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from geoalchemy2 import WKTElement
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 from adapters.mireye_adapter import get_area_context
 from consensus import update_cluster_confidence
 from database import get_db
-from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut
+from schemas import ChatRequest, ChatResponse, ReportCreate, ReportOut, ComplaintOut, ClusterOut
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -13,21 +14,20 @@ from sqlalchemy import Float
 
 from schemas import ReportOut
 
-from models import ClusterStatus, Report, HazardCluster
+from models import ClusterStatus, Report, HazardCluster, AuthorityComplaint, ComplaintStatus
 
 from clustering import run_clustering_for_category
 
+from reasoning.generate_complaint_for_cluster import generate_complaint_for_cluster
+from reasoning.authority_agent import AuthorityAgentError
 
-from schemas import (
-    ChatRequest,
-    ChatResponse,
-    ReportCreate,
-    ReportOut,
-    ClusterOut
-)
 
 from reasoning.retrieval import retrieve_context
-from reasoning.agent import assess_hazard
+from reasoning.agent import assess_hazard, ReasoningAgentError
+from reasoning.assess_cluster import assess_cluster, ClusterNotFoundError
+from notifications.nearby_alerts import get_nearby_verified_clusters
+from adapters.routing_adapter import RoutingAPIError
+from routing.safe_route import get_safe_route
 
 
 app = FastAPI(title="VeriGrid API")
@@ -185,6 +185,8 @@ def get_clusters(db: Session = Depends(get_db)):
             HazardCluster.confidence, HazardCluster.report_count,
             func.ST_Y(HazardCluster.geom.cast(Geometry)).label("lat"),
             func.ST_X(HazardCluster.geom.cast(Geometry)).label("lon"),
+            HazardCluster.severity, HazardCluster.explanation,
+            HazardCluster.recommended_action, HazardCluster.assessed_at,
         )
     ).all()
     return [
@@ -196,6 +198,121 @@ def get_clusters(db: Session = Depends(get_db)):
             "report_count": row.report_count,
             "lat": row.lat,
             "lon": row.lon,
+            "severity": row.severity,
+            "explanation": row.explanation,
+            "recommended_action": row.recommended_action,
+            "assessed_at": row.assessed_at,
         }
         for row in rows
     ]
+
+
+@app.post("/clusters/{cluster_id}/assess", response_model=ClusterOut)
+def assess_cluster_endpoint(cluster_id: int, db: Session = Depends(get_db)):
+    """
+    Runs the Day 9 reasoning agent against this specific cluster's
+    location and persists severity/explanation/recommended_action onto
+    it. Idempotent-ish: re-running overwrites the previous assessment
+    with a fresh one (no history is kept — a single current assessment
+    per cluster is enough for the demo; see Day 12 backtesting for
+    before/after comparisons instead).
+    """
+    try:
+        cluster = assess_cluster(db, cluster_id)
+    except ClusterNotFoundError:
+        raise HTTPException(status_code=404, detail=f"No cluster with id={cluster_id}")
+    except ReasoningAgentError as exc:
+        raise HTTPException(status_code=502, detail=f"Reasoning agent failed: {exc}")
+
+    shape = to_shape(cluster.geom)
+
+    return {
+        "id": cluster.id,
+        "category": cluster.category,
+        "status": cluster.status,
+        "confidence": cluster.confidence,
+        "report_count": cluster.report_count,
+        "lat": shape.y,
+        "lon": shape.x,
+        "severity": cluster.severity,
+        "explanation": cluster.explanation,
+        "recommended_action": cluster.recommended_action,
+        "assessed_at": cluster.assessed_at,
+    }
+
+
+# ---------------------------------------------------------------------
+# nearby alerts + safe routing. Flagged cuttable in
+# the map + chat +
+# report flow demos fine without them.
+# ---------------------------------------------------------------------
+
+@app.get("/alerts/nearby")
+def get_nearby_alerts(
+    lat: float,
+    lon: float,
+    radius: float = 3000,
+    db: Session = Depends(get_db),
+):
+    """
+    Polling endpoint: the frontend calls this on an interval while the
+    map is open and diffs client-side against what it last saw, rather
+    than the backend pushing over a WebSocket. Only returns VERIFIED
+    clusters — candidate/forming clusters aren't confirmed hazards yet.
+    """
+    return {"alerts": get_nearby_verified_clusters(db, lat, lon, radius)}
+
+
+@app.get("/route/safe")
+def get_safe_route_endpoint(
+    origin_lat: float,
+    origin_lon: float,
+    dest_lat: float,
+    dest_lon: float,
+    db: Session = Depends(get_db),
+):
+    """
+    Returns a route that avoids verified-hazard buffers where possible.
+    NOT true avoid-polygon routing — selects among a few alternative
+    routes from the routing engine and picks the first one whose path
+    doesn't pass within HAZARD_BUFFER_METERS of a verified cluster. If
+    none qualify, returns the shortest option with an explicit warning
+    rather than silently implying it's hazard-free.
+    """
+    try:
+        return get_safe_route(db, origin_lat, origin_lon, dest_lat, dest_lon)
+    except RoutingAPIError as exc:
+        raise HTTPException(status_code=502, detail=f"Routing service failed: {exc}")
+
+
+
+
+# ---------------------------------------------------------------------
+# Authority Agent
+# ---------------------------------------------------------------------
+
+@app.post("/clusters/{cluster_id}/generate-complaint", response_model=ComplaintOut)
+def generate_complaint_endpoint(cluster_id: int, db: Session = Depends(get_db)):
+    """
+    Generates an evidence-backed authority complaint for a cluster and
+    saves it as a draft. If the cluster hasn't been assessed yet (Day
+    10's /clusters/{id}/assess), this runs that assessment first
+    automatically — see reasoning/generate_complaint_for_cluster.py.
+    """
+    try:
+        complaint = generate_complaint_for_cluster(db, cluster_id)
+    except ClusterNotFoundError:
+        raise HTTPException(status_code=404, detail=f"No cluster with id={cluster_id}")
+    except (ReasoningAgentError, AuthorityAgentError) as exc:
+        raise HTTPException(status_code=502, detail=f"Complaint generation failed: {exc}")
+
+    return complaint
+
+
+@app.get("/complaints", response_model=list[ComplaintOut])
+def list_complaints(db: Session = Depends(get_db)):
+    """Lists all authority complaints (draft/approved/sent) for the
+    approval-queue UI."""
+    return db.execute(
+        select(AuthorityComplaint).order_by(AuthorityComplaint.created_at.desc())
+    ).scalars().all()
