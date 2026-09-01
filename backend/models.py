@@ -2,6 +2,7 @@ import enum
 from datetime import datetime, timezone
 
 from geoalchemy2 import Geography
+from geoalchemy2 import Geometry
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum as SAEnum
@@ -115,7 +116,7 @@ class HazardCluster(Base):
     category = Column(SAEnum(ReportCategory), nullable=False, index=True)
 
     # Centroid of all member reports, recomputed whenever a report joins the cluster.
-    geom = Column(Geography(geometry_type="POINT", srid=4326), nullable=False)
+    geom = Column(Geometry(geometry_type="POINT", srid=4326), nullable=False)
 
     status = Column(SAEnum(ClusterStatus), nullable=False, default=ClusterStatus.forming, index=True)
     confidence = Column(Integer, nullable=False, default=0)

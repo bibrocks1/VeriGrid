@@ -12,6 +12,27 @@ VERIFIED_THRESHOLD = 60
 TRUST_REWARD_ON_VERIFY = 2
 TRUST_CAP = 25
 
+# A single high-trust user shouldn't be able to single-handedly push a
+# cluster's confidence up by having an outsized trust_score — cap each
+# user's contribution before averaging. (Previously this cap existed
+# only in the design notes, not in the code: the average was computed
+# from raw, uncapped trust_score values.)
+PER_USER_TRUST_CAP = 25
+
+
+def compute_confidence_score(report_count: int, unique_user_count: int, average_trust: float) -> int:
+    """
+    Pure scoring function, independent of the DB — takes already-computed
+    aggregates and returns a 0-100 confidence score. Extracted so this
+    logic can be unit tested without a database (see test_consensus.py).
+    """
+    report_score = min(report_count * 10, 40)
+    user_score = min(unique_user_count * 10, 30)
+    trust_score = min(int(average_trust), 30)
+
+    confidence = report_score + user_score + trust_score
+    return min(confidence, 100)
+
 
 def utcnow():
     return datetime.now(timezone.utc)
