@@ -13,7 +13,8 @@ export default function ReporterIdentity() {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-current/20 px-3.5 py-2.5 text-xs opacity-70">
       <span>
-        Demo: reporting as <span className="font-mono">{deviceId.slice(0, 8)}</span>
+        Demo: reporting as{" "}
+        <span className="font-mono">{deviceId.slice(0, 8)}</span>
       </span>
       <button
         type="button"
