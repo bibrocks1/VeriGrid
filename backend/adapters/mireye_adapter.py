@@ -13,6 +13,9 @@ MIREYE_BASE_URL = os.getenv(
     "https://api.mireye.com/v1"
 )
 
+if not MIREYE_API_KEY:
+    raise RuntimeError("MIREYE_API_KEY is not set in backend/.env")
+
 
 class MireyeAPIError(Exception):
     """Raised when a Mireye API request fails."""
@@ -22,7 +25,10 @@ class MireyeAPIError(Exception):
 def get_area_context(
     lat: float,
     lon: float,
+    preset: str = "terrain",
 ) -> dict[str, Any]:
+    """
+    Fetch geospatial context from Mireye for a coordinate.
 
     Args:
         lat: Latitude.
@@ -35,10 +41,13 @@ def get_area_context(
             checks (mireye_service.py) that need e.g. flood_risk for
             flooding reports and natural_hazard for safety reports.
 
-    if not api_key:
-        raise RuntimeError(
-            "MIREYE_API_KEY is not set in backend/.env"
-        )
+    Returns:
+        Raw Mireye JSON response.
+
+    Raises:
+        ValueError: If coordinates are invalid.
+        MireyeAPIError: If Mireye returns an error.
+    """
 
     if not -90 <= lat <= 90:
         raise ValueError(f"Invalid latitude: {lat}")
@@ -46,24 +55,17 @@ def get_area_context(
     if not -180 <= lon <= 180:
         raise ValueError(f"Invalid longitude: {lon}")
 
-    url = "https://api.mireye.com/v1/fetch"
+    url = f"{MIREYE_BASE_URL}/fetch"
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {MIREYE_API_KEY}",
         "Content-Type": "application/json",
     }
 
     payload = {
         "lat": lat,
         "lng": lon,
-        "fields": [
-            "elevation",
-            "slope_degrees",
-            "aspect_cardinal",
-            "coast_distance_m",
-            "bedrock_depth_cm",
-            "soil_drainage_class",
-        ],
+        "preset": preset,
     }
 
     try:
@@ -87,12 +89,12 @@ def get_area_context(
 
     try:
         return response.json()
-
     except ValueError as exc:
         raise MireyeAPIError(
             "Mireye returned a non-JSON response."
         ) from exc
-    
+
+
 def push_verified_observation(
     payload: dict[str, Any],
 ) -> dict[str, Any]:
