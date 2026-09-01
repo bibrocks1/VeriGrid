@@ -87,3 +87,40 @@ def get_route_alternatives(
             "steps": _parse_steps(route),
         })
     return results
+
+
+def get_route_via_waypoint(
+    origin_lat: float, origin_lon: float,
+    waypoint_lat: float, waypoint_lon: float,
+    dest_lat: float, dest_lon: float,
+) -> dict:
+    """Forces OSRM through an explicit intermediate point, per the Day 10
+    plan's "insert an intermediate waypoint that nudges the route around
+    that coordinate and recalculate" — this is what turns hazard avoidance
+    from "pick among OSRM's given alternatives" into an actual detour
+    attempt. Single route, no alternatives (the waypoint already
+    disambiguates the path)."""
+    coords = f"{origin_lon},{origin_lat};{waypoint_lon},{waypoint_lat};{dest_lon},{dest_lat}"
+    url = f"{OSRM_BASE_URL}/route/v1/driving/{coords}"
+    params = {"overview": "full", "geometries": "geojson", "steps": "true"}
+
+    try:
+        response = requests.get(url, params=params, timeout=15)
+    except requests.RequestException as exc:
+        raise RoutingAPIError(f"Could not reach routing service: {exc}") from exc
+
+    if not response.ok:
+        raise RoutingAPIError(f"Routing service returned {response.status_code}: {response.text}")
+
+    data = response.json()
+    if data.get("code") != "Ok" or not data.get("routes"):
+        raise RoutingAPIError(f"Routing service error: {data.get('message', data.get('code'))}")
+
+    route = data["routes"][0]
+    route_coords = route["geometry"]["coordinates"]
+    return {
+        "geometry": [[lat, lon] for lon, lat in route_coords],
+        "distance_m": route["distance"],
+        "duration_s": route["duration"],
+        "steps": _parse_steps(route),
+    }

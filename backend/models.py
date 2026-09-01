@@ -188,4 +188,8 @@ class MireyeSyncLog(Base):
     lng = Column(Float, nullable=False)
     status = Column(String, nullable=False)  # "ok" | "failed" | "skipped"
     detail = Column(Text, nullable=True)
+    # Set for kind="verified_push": lets the full prepared payload be
+    # looked up per cluster (GET /clusters/{id}/mireye-payload) instead of
+    # only existing as a line in an undifferentiated log.
+    cluster_id = Column(Integer, ForeignKey("hazard_clusters.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, index=True)

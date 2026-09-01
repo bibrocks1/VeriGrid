@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from geoalchemy2.shape import to_shape
 from sqlalchemy.orm import Session
 
-from models import ClusterStatus, HazardCluster, MireyeSyncLog, Report, User
+from mireye_service import log_verified_push
+from models import ClusterStatus, HazardCluster, Report, User
 
 # Mirrors frontend/src/lib/constants.js CONFIDENCE_THRESHOLDS exactly — keep
 # the two in sync if either changes.
@@ -54,21 +54,11 @@ def recompute_confidence(db: Session, cluster: HazardCluster) -> HazardCluster:
 
         # Day 8's "push verified clusters to MirEye" trigger. MirEye's
         # documented API has no write endpoint (see adapters/mireye_adapter
-        # .push_verified_observation), so this logs the attempt as skipped
-        # rather than doing nothing silently.
-        point = to_shape(cluster.geom)
-        db.add(
-            MireyeSyncLog(
-                kind="verified_push",
-                lat=point.y,
-                lng=point.x,
-                status="skipped",
-                detail=(
-                    f"cluster {cluster.id} ({cluster.category.value}) reached verified "
-                    "status; MirEye has no observation-write endpoint to push to"
-                ),
-            )
-        )
+        # .push_verified_observation), so nothing is actually sent over the
+        # network — but the full payload is built and persisted right here,
+        # ready to send the instant a write endpoint exists (see
+        # mireye_service.build_verified_observation_payload).
+        log_verified_push(db, cluster, reports)
 
     return cluster
 
