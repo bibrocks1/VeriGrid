@@ -15,8 +15,8 @@ so there's no new query logic to get wrong — only VERIFIED clusters are
 returned, since "candidate"/"forming" clusters aren't confirmed hazards
 yet and alerting on them would be noisy/premature.
 """
-from geoalchemy2 import Geometry
-from geoalchemy2.shape import to_shape
+from geoalchemy2.shape import from_shape, to_shape
+from shapely.geometry import Point
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
@@ -24,7 +24,9 @@ from models import HazardCluster, ClusterStatus
 
 
 def get_nearby_verified_clusters(db: Session, lat: float, lon: float, radius_m: float = 3000) -> list[dict]:
-    point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    # HazardCluster.geom is Geography — from_shape's point compares
+    # correctly against it, unlike a raw ST_MakePoint Geometry point.
+    point = from_shape(Point(lon, lat), srid=4326)
 
     rows = db.execute(
         select(HazardCluster)

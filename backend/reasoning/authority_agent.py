@@ -14,10 +14,15 @@ clean up later, not less.
 import json
 import os
 import pathlib
-from typing import Any
+import smtplib
+from email.message import EmailMessage
+from typing import Any, TYPE_CHECKING
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+if TYPE_CHECKING:
+    from models import AuthorityComplaint
 
 load_dotenv()
 
@@ -145,3 +150,37 @@ Generate the authority complaint.
         raise AuthorityAgentError(f"Invalid severity: {result['severity']}")
 
     return result
+
+
+def deliver_complaint(complaint: "AuthorityComplaint") -> str:
+    """Day 12: send the approved complaint to its responsible authority.
+    Uses real SMTP if credentials are configured (SMTP_HOST/SMTP_USER/
+    SMTP_PASSWORD/AUTHORITY_DEMO_EMAIL in backend/.env); otherwise falls
+    back to the doc's other explicitly-allowed option, a mock delivery
+    that just logs the attempt. Returns a human-readable delivery detail
+    string. This step didn't exist anywhere on main — Day 12 (the actual
+    approve-and-send action) was still missing."""
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    demo_email = os.getenv("AUTHORITY_DEMO_EMAIL")
+
+    if not (smtp_host and smtp_user and smtp_password and demo_email):
+        return (
+            f"Mock delivery (no SMTP configured): would have emailed "
+            f"{complaint.responsible_authority} <{demo_email or 'unset AUTHORITY_DEMO_EMAIL'}>."
+        )
+
+    message = EmailMessage()
+    message["Subject"] = f"VeriGrid verified report: {complaint.title}"
+    message["From"] = smtp_user
+    message["To"] = demo_email
+    message.set_content(complaint.description)
+
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(message)
+
+    return f"Emailed {demo_email} via {smtp_host}."

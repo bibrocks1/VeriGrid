@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * VeriGrid design tokens — dock.cool-style visual language: a light,
+ * warm-neutral canvas, pill-shaped interactive elements, and one deliberate
+ * dark section (the live map) rather than the alternating dark/light
+ * pattern this page used before. Status semantics (candidate/verified/
+ * hazard) stay mapped to amber/green/red, now rendered as solid pill
+ * badges instead of dashed stamps.
+ */
+@theme {
+  --color-paper: #edecea;
+  --color-card: #ffffff;
+  --color-card-soft: #f2f1ef;
+  --color-line: #ddd9d4;
+  --color-ink: #0b0b0c;
+  --color-ink-card: #18181a;
+  --color-line-dark: #2c2c2e;
+  --color-amber: #d98a2b;
+  --color-verified: #2f8f5b;
+  --color-hazard: #c1442e;
+  --color-ink-text: #f2f1ee;
+  --color-paper-text: #0a0a0a;
+  --color-muted: #6b6b6b;
+  --color-muted-ink: #9a9a9a;
+
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-paper-text);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+/* Soft, tinted shadow used under the floating nav pill and cards — never a
+   flat black drop shadow. */
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgba(10, 10, 10, 0.04),
+    0 8px 24px rgba(10, 10, 10, 0.08);
+}
+
+/* Hero backdrop: faint topographic contour lines, tying the visual directly
+   to the product's actual subject (hazard mapping) instead of a generic
+   gradient or unrelated stock photo. Deliberately subtle. */
+.bg-grid-hero {
+  background-image:
+    repeating-radial-gradient(
+      circle at 20% 15%,
+      transparent 0,
+      transparent 46px,
+      rgba(10, 10, 10, 0.035) 47px,
+      rgba(10, 10, 10, 0.035) 48px
+    ),
+    repeating-radial-gradient(
+      circle at 82% 70%,
+      transparent 0,
+      transparent 60px,
+      rgba(10, 10, 10, 0.03) 61px,
+      rgba(10, 10, 10, 0.03) 62px
+    );
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 30%,
+    black,
+    transparent 90%
+  );
+}
+
+/* Pill status badge — replaces the old dashed "stamp" motif with a solid
+   rounded-full pill, matching dock.cool's tag/chip language while keeping
+   the same semantic colors (candidate/verified/hazard). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  border-radius: 999px;
+  padding: 0.3em 0.85em;
+  font-size: 0.75rem;
+  font-weight: 600;
 }

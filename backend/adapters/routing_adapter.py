@@ -17,6 +17,28 @@ class RoutingAPIError(Exception):
     pass
 
 
+def _parse_steps(route: dict) -> list[dict]:
+    steps = []
+    for leg in route.get("legs", []):
+        for step in leg.get("steps", []):
+            maneuver = step.get("maneuver", {})
+            instruction_type = maneuver.get("type", "continue")
+            modifier = maneuver.get("modifier")
+            road_name = step.get("name") or "the road"
+            instruction = instruction_type.replace("_", " ").capitalize()
+            if modifier:
+                instruction += f" ({modifier})"
+            instruction += f" onto {road_name}"
+            steps.append(
+                {
+                    "instruction": instruction,
+                    "distanceM": round(step.get("distance", 0), 1),
+                    "durationS": round(step.get("duration", 0), 1),
+                }
+            )
+    return steps
+
+
 def get_route_alternatives(
     origin_lat: float, origin_lon: float,
     dest_lat: float, dest_lon: float,
@@ -24,7 +46,8 @@ def get_route_alternatives(
 ) -> list[dict]:
     """
     Returns a list of route options, each:
-        {"geometry": [[lat, lon], ...], "distance_m": float, "duration_s": float}
+        {"geometry": [[lat, lon], ...], "distance_m": float, "duration_s": float,
+         "steps": [{"instruction": str, "distanceM": float, "durationS": float}, ...]}
     Ordered as OSRM returns them (first is its default/shortest route).
     """
     url = (
@@ -35,6 +58,7 @@ def get_route_alternatives(
         "alternatives": "true",
         "overview": "full",
         "geometries": "geojson",
+        "steps": "true",
     }
 
     try:
@@ -60,5 +84,6 @@ def get_route_alternatives(
             "geometry": [[lat, lon] for lon, lat in coords],
             "distance_m": route["distance"],
             "duration_s": route["duration"],
+            "steps": _parse_steps(route),
         })
     return results

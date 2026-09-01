@@ -24,7 +24,16 @@ def get_area_context(
     lon: float,
 ) -> dict[str, Any]:
 
-    api_key = os.getenv("MIREYE_API_KEY")
+    Args:
+        lat: Latitude.
+        lon: Longitude.
+        preset: Mireye data preset to request — the live API supports 14
+            (terrain, flood_risk, natural_hazard, utilities, ...), each
+            returning a different field set. A previous version of this
+            adapter dropped this parameter entirely and always fetched one
+            fixed field list, which broke category-specific credibility
+            checks (mireye_service.py) that need e.g. flood_risk for
+            flooding reports and natural_hazard for safety reports.
 
     if not api_key:
         raise RuntimeError(

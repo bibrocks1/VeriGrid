@@ -1,69 +1,236 @@
-import Image from "next/image";
+import NavBar from "@/components/layout/NavBar";
+import Footer from "@/components/layout/Footer";
+import Section from "@/components/layout/Section";
+import SectionHeading from "@/components/layout/SectionHeading";
+import StepDiagram from "@/components/marketing/StepDiagram";
+import FAQAccordion from "@/components/marketing/FAQAccordion";
+import MapCanvasLoader from "@/components/map/MapCanvasLoader";
+import RoutePlannerLoader from "@/components/map/RoutePlannerLoader";
+import ReportFlowDemo from "@/components/report/ReportFlowDemo";
+import VerificationExplainer from "@/components/verification/VerificationExplainer";
+import ChatPanel from "@/components/chat/ChatPanel";
+import ReportReviewScreen from "@/components/authority/ReportReviewScreen";
+import SyncStatusBadge from "@/components/authority/SyncStatusBadge";
+import {
+  getReports,
+  getClusters,
+  getStats,
+  getAuthorityReport,
+  getSyncStatus,
+} from "@/lib/api";
+import { MOCK_AUTHORITY_REPORT } from "@/lib/mockData";
 
-export default function Home() {
+const REPORT_STEPS = [
+  {
+    title: "Report",
+    description:
+      "A citizen files a hazard report with a category, description, and location.",
+  },
+  {
+    title: "Cluster",
+    description:
+      "Nearby reports of the same hazard are grouped into a candidate cluster.",
+  },
+  {
+    title: "Consensus",
+    description:
+      "Each distinct reporter raises the cluster's confidence score.",
+  },
+  {
+    title: "Verified",
+    description:
+      "At 60+ confidence the cluster is verified and routed toward authorities.",
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    question: "What counts as a report?",
+    answer:
+      "Any hazard a citizen can see and categorize: flooding, road damage, unsafe construction, and more, with a short description and a location.",
+  },
+  {
+    question: "How is a report verified?",
+    answer:
+      "Reports of the same hazard near each other are grouped into a cluster. Each distinct reporter who confirms it raises the cluster's confidence score; at 60+ it's marked verified.",
+  },
+  {
+    question: "Is my location shared?",
+    answer:
+      "Only the report's location is shared, not your identity. Your trust score is tracked internally to weight consensus, not shown publicly against your name.",
+  },
+  {
+    question: "What happens after a report is verified?",
+    answer:
+      "The Authority Agent drafts a structured complaint from the verified cluster. A human reviewer approves it before it's sent to the identified authority.",
+  },
+];
+
+// Server Component: fetches everything the page needs once, then hands
+// plain data down to presentational or client components. Each `get*` call
+// transparently falls back to demo fixtures if no backend is configured —
+// see lib/api.js. Unchanged from before this redesign: same fetches, same
+// components, same wiring, only presentation and copy changed below.
+export default async function Home() {
+  const [reportsRes, clustersRes, statsRes, syncRes] = await Promise.all([
+    getReports(),
+    getClusters(),
+    getStats(),
+    getSyncStatus(),
+  ]);
+  const stats = statsRes.data;
+
+  // The authority-report demo needs a real verified cluster id — there's
+  // no fixed one to hardcode now that clusters come from live data. Uses
+  // whichever verified cluster exists; falls back to the fixture only if
+  // none has formed yet (e.g. a freshly seeded database).
+  const verifiedCluster = clustersRes.data.find((c) => c.status === "verified");
+  const authorityRes = verifiedCluster
+    ? await getAuthorityReport(verifiedCluster.id)
+    : { data: MOCK_AUTHORITY_REPORT, source: "demo" };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <div id="top" className="flex flex-1 flex-col font-body">
+      <NavBar />
+
+      <main className="flex flex-1 flex-col">
+        {/* Hero */}
+        <Section tone="paper" className="relative overflow-hidden">
+          <div
+            className="bg-grid-hero pointer-events-none absolute inset-0"
+            aria-hidden
+          />
+          <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
+            <p className="mb-5 text-sm font-medium text-muted">
+              Live hazard verification
+            </p>
+            <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+              One report is a rumor.
+              <br />
+              Nine make it <span className="text-verified">verified</span>.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+              VeriGrid confirms hazard reports through independent-reporter
+              consensus, layers in MirEye infrastructure data, and routes
+              verified issues to the right authority.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-5">
+              <a
+                href="#report"
+                className="inline-flex items-center rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-ink-text transition-opacity hover:opacity-90"
+              >
+                Report an issue
+              </a>
+              <a
+                href="#map"
+                className="text-sm font-semibold text-paper-text underline decoration-line underline-offset-4 transition-colors hover:decoration-paper-text"
+              >
+                Explore the live map
+              </a>
+            </div>
+            <p className="mt-8 text-sm text-muted">
+              {stats.activeReports.toLocaleString()} active reports &middot;{" "}
+              {stats.verifiedHotspots.toLocaleString()} verified hotspots
+              &middot; {stats.trustContributors.toLocaleString()} contributors
+            </p>
+          </div>
+        </Section>
+
+        {/* Live map — the one deliberate dark section on the page */}
+        <Section id="map" tone="ink">
+          <SectionHeading
+            eyebrow="The live product"
+            title="The map, as it actually looks right now"
+            description="Raw reports, candidate clusters, and verified hotspots, filterable by category, with click-to-report built into the map itself."
+          />
+          <div className="mt-10 overflow-hidden rounded-3xl bg-ink-card p-3 shadow-soft sm:p-4">
+            <MapCanvasLoader
+              reports={reportsRes.data}
+              clusters={clustersRes.data}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+        </Section>
+
+        {/* Report flow */}
+        <Section id="report" tone="paper">
+          <SectionHeading
+            title="From one tap to a verified hotspot"
+            description="Every report enters the same pipeline: filed, clustered against nearby reports, confirmed by consensus, then verified."
+          />
+          <div className="mt-10">
+            <StepDiagram steps={REPORT_STEPS} />
+          </div>
+          <div className="mt-10 max-w-lg">
+            <ReportFlowDemo />
+          </div>
+        </Section>
+
+        {/* Consensus engine */}
+        <Section id="how-it-works" tone="paper">
+          <SectionHeading
+            title="Verification is a vote, not a vibe"
+            description="No single report can flip a location to verified. Confidence only climbs when distinct reporters independently confirm the same hazard, and confirming one earns you trust."
+          />
+          <div className="mt-10 max-w-xl">
+            <VerificationExplainer />
+          </div>
+        </Section>
+
+        {/* Ask VeriGrid */}
+        <Section id="ask" tone="paper">
+          <SectionHeading
+            title="Ask VeriGrid about any point on the map"
+            description="Answers are grounded in two sources, and the panel always tells you which one: verified citizen reports, or MirEye's infrastructure records."
+          />
+          <div className="mt-10 max-w-xl">
+            <ChatPanel />
+          </div>
+        </Section>
+
+        {/* Safe routing */}
+        <Section tone="paper">
+          <SectionHeading
+            title="Routes that warn you about verified hazards"
+            description="Plan a route and VeriGrid checks the actual OSRM path against verified hotspots along the way, flagging any that sit too close."
+          />
+          <div className="mt-10">
+            <RoutePlannerLoader />
+          </div>
+        </Section>
+
+        {/* For authorities */}
+        <Section id="authorities" tone="paper">
+          <SectionHeading
+            eyebrow="For authorities"
+            title="A verified cluster, drafted as a complaint"
+            description="Once a cluster is verified, the Authority Agent drafts a structured complaint and routes it to the responsible office. A human reviewer approves before anything is sent."
+          />
+          <div className="mt-10 max-w-2xl">
+            <ReportReviewScreen initialReport={authorityRes.data} />
+          </div>
+        </Section>
+
+        {/* MirEye integration */}
+        <Section tone="paper">
+          <SectionHeading
+            title="Layered on MirEye infrastructure data"
+            description="Area context and verified observations sync in from MirEye, so answers and authority routing are grounded in real infrastructure records, not just citizen reports alone."
+          />
+          <div className="mt-8">
+            <SyncStatusBadge sync={syncRes.data} />
+          </div>
+        </Section>
+
+        {/* FAQ */}
+        <Section id="faq" tone="paper">
+          <SectionHeading title="Frequently asked" align="center" />
+          <div className="mx-auto mt-10 max-w-2xl rounded-3xl bg-card p-2 shadow-soft sm:p-4">
+            <FAQAccordion items={FAQ_ITEMS} />
+          </div>
+        </Section>
       </main>
+
+      <Footer />
     </div>
   );
 }

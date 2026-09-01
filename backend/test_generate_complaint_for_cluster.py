@@ -19,6 +19,27 @@ def test_raises_when_cluster_not_found():
         generate_complaint_for_cluster(db, cluster_id=999)
 
 
+def test_returns_existing_complaint_without_regenerating():
+    # A cluster with a complaint already generated should return it as-is
+    # — refreshing the page shouldn't reset an approval already in
+    # progress (AuthorityComplaint.cluster_id is unique: at most one row
+    # per cluster).
+    fake_cluster = MagicMock(id=1)
+    existing_complaint = MagicMock(title="Already generated")
+    db = MagicMock()
+    db.get.return_value = fake_cluster
+    db.query.return_value.filter.return_value.first.return_value = existing_complaint
+
+    with patch("reasoning.generate_complaint_for_cluster.assess_cluster") as mock_assess, \
+         patch("reasoning.generate_complaint_for_cluster.generate_complaint") as mock_generate:
+        complaint = generate_complaint_for_cluster(db, cluster_id=1)
+        mock_assess.assert_not_called()
+        mock_generate.assert_not_called()
+
+    assert complaint is existing_complaint
+    db.add.assert_not_called()
+
+
 @patch("reasoning.generate_complaint_for_cluster.generate_complaint")
 @patch("reasoning.generate_complaint_for_cluster.retrieve_context")
 @patch("reasoning.generate_complaint_for_cluster.to_shape")
@@ -31,6 +52,9 @@ def test_uses_existing_assessment_without_reassessing(mock_to_shape, mock_retrie
     )
     db = MagicMock()
     db.get.return_value = fake_cluster
+    # No existing complaint for this cluster, and no member reports.
+    db.query.return_value.filter.return_value.first.return_value = None
+    db.query.return_value.filter.return_value.all.return_value = []
     mock_to_shape.return_value = MagicMock(y=28.60, x=77.20)
     mock_retrieve.return_value = {"verigrid": {}, "mireye": None, "noaa": None}
     mock_generate.return_value = {
@@ -64,6 +88,8 @@ def test_auto_assesses_unassessed_cluster_first(mock_assess, mock_to_shape, mock
     )
     db = MagicMock()
     db.get.return_value = unassessed_cluster
+    db.query.return_value.filter.return_value.first.return_value = None
+    db.query.return_value.filter.return_value.all.return_value = []
     mock_assess.return_value = assessed_cluster
     mock_to_shape.return_value = MagicMock(y=28.60, x=77.20)
     mock_retrieve.return_value = {}

@@ -1,7 +1,8 @@
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from geoalchemy2.shape import to_shape
+from geoalchemy2.shape import from_shape, to_shape
+from shapely.geometry import Point
 
 from models import Report, HazardCluster, ClusterStatus
 from adapters.mireye_adapter import get_area_context
@@ -27,10 +28,12 @@ def retrieve_context(
     # 1. Build the query point
     # ---------------------------------------------------------
 
-    point = func.ST_SetSRID(
-        func.ST_MakePoint(lon, lat),
-        4326,
-    )
+    # Report.geom / HazardCluster.geom are Geography columns, so ST_DWithin
+    # below returns real meters. from_shape's WKBElement compares correctly
+    # against them; the previous func.ST_SetSRID(...) Geometry point did
+    # not (Geography vs Geometry type mismatch — either an error or an
+    # implicit, wrong-unit cast depending on the PostGIS version).
+    point = from_shape(Point(lon, lat), srid=4326)
 
     # ---------------------------------------------------------
     # 2. Retrieve nearby reports
@@ -145,10 +148,7 @@ def retrieve_context(
     mireye_error = None
 
     try:
-        mireye = get_area_context(
-            lat,
-            lon,
-        )
+        mireye = get_area_context(lat, lon, preset="terrain")
     except Exception as exc:
         mireye_error = str(exc)
 
