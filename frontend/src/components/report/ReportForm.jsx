@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import { createReport } from "@/lib/api";
+import ReporterIdentityLoader from "./ReporterIdentityLoader";
 
 // Reusable report submission form. `location` is controlled by the caller
 // (set from a map click, or left null for the standalone demo in Hero 3) so
@@ -67,6 +68,8 @@ export default function ReportForm({ location, onSubmitted, onCancel }) {
           ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
           : "Click the map to drop a pin, or submit at the default center"}
       </div>
+
+      <ReporterIdentityLoader />
 
       {error && <p className="text-sm text-hazard">{error}</p>}
 

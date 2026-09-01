@@ -18,3 +18,16 @@ export function getDeviceId() {
   window.localStorage.setItem(STORAGE_KEY, id);
   return id;
 }
+
+// Demo-only escape hatch: consensus dedupes contributors by device_id, so
+// verifying a cluster live in front of judges needs several distinct
+// "reporters" without actually switching browsers/incognito windows.
+// Overwrites the stored id with a fresh one and returns it.
+export function resetDeviceId() {
+  if (typeof window === "undefined") {
+    return "server";
+  }
+  const id = crypto.randomUUID();
+  window.localStorage.setItem(STORAGE_KEY, id);
+  return id;
+}
