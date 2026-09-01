@@ -231,8 +231,6 @@ VeriGrid/
 
 ## Known limitations & roadmap
 
-- **No live write-back to MirEye.** Its documented API has no observation-write endpoint (confirmed against the live API, not assumed), so nothing is actually transmitted when a cluster verifies. VeriGrid prepares and stores the full payload regardless (see Key Features), but sending it isn't possible until MirEye exposes one.
-- **Routing detours are a heuristic, not true avoid-polygon routing.** The routing engine itself has no concept of hazards; VeriGrid nudges a waypoint around one and asks it to recalculate. On a road network with no real alternate street nearby (a dense one-way grid, for example), no offset produces a clean route, and VeriGrid says so rather than guessing.
 - **No real user accounts.** Identity is a device-scoped id by design, matching the product's zero-friction reporting goal, not a placeholder for a login system.
 - **Authority complaint delivery needs SMTP configured to actually send email**; without it, an approved complaint is logged as a mock send rather than delivered.
 
