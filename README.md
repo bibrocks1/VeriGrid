@@ -1,10 +1,8 @@
 # VeriGrid
 
-**Crowdsourced hazard reports, verified by consensus — not by trust.**
+**Crowdsourced hazard reports, verified by consensus, not by trust.**
 
-VeriGrid turns scattered, unverifiable citizen hazard reports (flooding, road damage, unsafe construction, and more) into confidence-scored, geospatially-clustered hotspots — grounded against real terrain, weather, and infrastructure data, and routed to the right authority with a human still in the loop before anything is sent.
-
-Built for [Hackathon Name] — see [Live Demo](#) · [Demo Video](#) · [Slides](#)
+VeriGrid turns scattered, unverifiable citizen hazard reports (flooding, road damage, unsafe construction, and more) into confidence-scored, geospatially-clustered hotspots, grounded against real terrain, weather, and infrastructure data, and routed to the right authority with a human still in the loop before anything is sent.
 
 ---
 
@@ -28,11 +26,11 @@ Built for [Hackathon Name] — see [Live Demo](#) · [Demo Video](#) · [Slides]
 
 ## The problem
 
-Citizen hazard reports on their own are noise, not signal: any single report could be a duplicate, a mistake, or spam, and local authorities have no reliable way to tell a real emerging hazard from one person's complaint — so most reports go nowhere. Meanwhile, the geospatial and environmental data that *could* corroborate a report (terrain, flood risk, weather, infrastructure proximity) sits in a completely separate system that citizen reporting tools never touch.
+Citizen hazard reports on their own are noise, not signal: any single report could be a duplicate, a mistake, or spam, and local authorities have no reliable way to tell a real emerging hazard from one person's complaint, so most reports go nowhere. Meanwhile, the geospatial and environmental data that *could* corroborate a report (terrain, flood risk, weather, infrastructure proximity) sits in a completely separate system that citizen reporting tools never touch.
 
 ## What VeriGrid does
 
-VeriGrid closes that loop. A citizen reports a hazard on a map; VeriGrid clusters it against nearby reports of the same kind, scores consensus confidence with anti-gaming protection (one person spamming the same report can't inflate a cluster), and cross-checks the location against real MirEye terrain/hazard data and NOAA weather. Once a cluster is independently confirmed by enough distinct reporters, it becomes a **verified hotspot** — at which point VeriGrid can draft an evidence-backed complaint to the responsible local authority (a human still has to approve and send it), warn drivers routing through the area, and answer natural-language questions about any point on the map, citing exactly which source — citizen reports or MirEye/NOAA data — each part of the answer came from.
+VeriGrid closes that loop. A citizen reports a hazard on a map; VeriGrid clusters it against nearby reports of the same kind, scores consensus confidence with anti-gaming protection (one person spamming the same report can't inflate a cluster), and cross-checks the location against real MirEye terrain/hazard data and NOAA weather. Once a cluster is independently confirmed by enough distinct reporters, it becomes a **verified hotspot**, at which point VeriGrid can draft an evidence-backed complaint to the responsible local authority (a human still has to approve and send it), warn drivers routing through the area, and answer natural-language questions about any point on the map, citing exactly which source, citizen reports or MirEye/NOAA data, each part of the answer came from.
 
 ## How it works
 
@@ -64,25 +62,25 @@ MirEye/NOAA evidence
        or warns if none do
 ```
 
-Every report also gets an on-submission MirEye credibility check (e.g. is a flooding report actually near a floodplain or low elevation?) — advisory, never blocking, logged either way.
+Every report also gets an on-submission MirEye credibility check (e.g. is a flooding report actually near a floodplain or low elevation?). It's advisory, never blocking, and logged either way.
 
 ## Key features
 
-- **Live map** — Leaflet map with click-to-report, category and verification-status filters, and distinct marker styles for raw reports vs. candidate vs. verified clusters.
-- **Anonymous, no-login reporting** — a citizen is identified by a device-scoped id (no account needed), which the consensus engine uses to prevent one person's repeat reports from single-handedly verifying a cluster.
-- **Spatial clustering (DBSCAN)** — reports within ~150m of each other and the same category are grouped into a single hazard cluster automatically, re-clustered on every new report.
-- **Consensus + anti-gaming trust model** — confidence is the sum of each *distinct* reporter's trust score (capped per person); reporting the same thing five times counts once. Verifying a cluster rewards every contributor with a small trust bump.
-- **MirEye geospatial grounding** — every report is checked against real terrain/flood-risk/hazard data for its category (flooding → flood-risk preset, safety → natural-hazard preset, etc.), producing a plausibility score and human-readable notes.
-- **RAG chat ("Ask VeriGrid")** — ask a natural-language question about any point on the map; the answer is retrieved from nearby VeriGrid reports/clusters plus MirEye and NOAA context, and is explicitly labeled by which source it actually came from.
-- **Authority Agent** — a verified cluster becomes an LLM-drafted, evidence-cited complaint addressed to the correct local authority (a fixed category → authority mapping), with severity, confidence, and contributor count computed from the cluster itself, not invented by the model. A human must approve before it's sent (SMTP if configured, otherwise a logged mock delivery for a repeatable demo).
-- **Hazard-aware routing** — real OSRM routing, checked against verified hotspots along the path; picks the first alternative route that clears all of them, or is honest that none do, with full turn-by-turn directions.
-- **Live sync status** — a visible, real (not decorative) log of every MirEye API call the backend has actually made.
+- **Live map**: Leaflet map with click-to-report, category and verification-status filters, and distinct marker styles for raw reports vs. candidate vs. verified clusters.
+- **Anonymous, no-login reporting**: a citizen is identified by a device-scoped id (no account needed), which the consensus engine uses to prevent one person's repeat reports from single-handedly verifying a cluster.
+- **Spatial clustering (DBSCAN)**: reports within ~150m of each other and the same category are grouped into a single hazard cluster automatically, re-clustered on every new report.
+- **Consensus + anti-gaming trust model**: confidence is the sum of each *distinct* reporter's trust score (capped per person); reporting the same thing five times counts once. Verifying a cluster rewards every contributor with a small trust bump.
+- **MirEye geospatial grounding**: every report is checked against real terrain/flood-risk/hazard data for its category (flooding → flood-risk preset, safety → natural-hazard preset, etc.), producing a plausibility score and human-readable notes.
+- **RAG chat ("Ask VeriGrid")**: ask a natural-language question about any point on the map; the answer is retrieved from nearby VeriGrid reports/clusters plus MirEye and NOAA context, and is explicitly labeled by which source it actually came from.
+- **Authority Agent**: a verified cluster becomes an LLM-drafted, evidence-cited complaint addressed to the correct local authority (a fixed category → authority mapping), with severity, confidence, and contributor count computed from the cluster itself, not invented by the model. A human must approve before it's sent (SMTP if configured, otherwise a logged mock delivery for a repeatable demo).
+- **Hazard-aware routing**: real OSRM routing, checked against verified hotspots along the path; picks the first alternative route that clears all of them, or is honest that none do, with full turn-by-turn directions.
+- **Live sync status**: a visible, real (not decorative) log of every MirEye API call the backend has actually made.
 
 ## Tech stack
 
-**Frontend** — Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · Leaflet / react-leaflet · Axios
+**Frontend**: Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · Leaflet / react-leaflet · Axios
 
-**Backend** — FastAPI · SQLAlchemy + GeoAlchemy2 · PostgreSQL + PostGIS (Neon serverless) · Alembic migrations · scikit-learn (DBSCAN) · OpenAI API (chat + reasoning agent) · MirEye API (terrain/hazard/infrastructure context) · NOAA National Weather Service API · OSRM (routing)
+**Backend**: FastAPI · SQLAlchemy + GeoAlchemy2 · PostgreSQL + PostGIS (Neon serverless) · Alembic migrations · scikit-learn (DBSCAN) · OpenAI API (chat + reasoning agent) · MirEye API (terrain/hazard/infrastructure context) · NOAA National Weather Service API · OSRM (routing)
 
 ## Architecture
 
@@ -122,7 +120,7 @@ cd VeriGrid
 ```bash
 cd backend
 python -m venv env
-env\Scripts\activate        # Windows — use `source env/bin/activate` on macOS/Linux
+env\Scripts\activate        # Windows (use `source env/bin/activate` on macOS/Linux)
 pip install -r requirements.txt
 
 cp .env.example .env        # then fill in DATABASE_URL, MIREYE_API_KEY, OPENAI_API_KEY
@@ -145,7 +143,7 @@ npm run dev:frontend
 
 Frontend is now live at `http://localhost:3000`.
 
-> Running `npm run dev` from `frontend/` starts both the frontend and backend together via `concurrently` — convenient once your `.env` is set up.
+> Running `npm run dev` from `frontend/` starts both the frontend and backend together via `concurrently`, convenient once your `.env` is set up.
 
 ### Docker Compose (alternative)
 
@@ -153,7 +151,7 @@ Frontend is now live at `http://localhost:3000`.
 docker-compose up --build
 ```
 
-Builds both services from their `Dockerfile.dev`, exposes `:3000` and `:8000`, and hot-reloads on file changes. Requires `backend/.env` to already exist (compose reads it via `env_file`) — the PostGIS database itself is external (e.g. Neon), not included in the compose file.
+Builds both services from their `Dockerfile.dev`, exposes `:3000` and `:8000`, and hot-reloads on file changes. Requires `backend/.env` to already exist (compose reads it via `env_file`); the PostGIS database itself is external (e.g. Neon), not included in the compose file.
 
 ### Without a backend at all
 
@@ -169,7 +167,7 @@ The frontend works standalone: every API call transparently falls back to realis
 | `MIREYE_API_KEY` | yes | MirEye terrain/hazard/infrastructure API |
 | `MIREYE_BASE_URL` | no | Defaults to `https://api.mireye.com/v1` |
 | `OPENAI_API_KEY` | yes | Powers the chat/reasoning agent and authority complaint drafting |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `AUTHORITY_DEMO_EMAIL` | no | Real email delivery for approved authority complaints. Omit any of these and delivery falls back to a logged mock send — the app works fully without them. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `AUTHORITY_DEMO_EMAIL` | no | Real email delivery for approved authority complaints. Omit any of these and delivery falls back to a logged mock send; the app works fully without them. |
 
 `frontend/.env.local`:
 
@@ -200,10 +198,10 @@ All routes are served from the FastAPI backend; full interactive docs at `/docs`
 
 ## Running a live demo
 
-Verification needs **distinct reporters** — consensus dedupes by reporter, so one browser submitting the same report five times only ever counts once (that's the anti-gaming protection working as intended). To demo cluster verification without switching devices:
+Verification needs **distinct reporters**: consensus dedupes by reporter, so one browser submitting the same report five times only ever counts once (that's the anti-gaming protection working as intended). To demo cluster verification without switching devices:
 
 1. Open the **Report** section and submit a hazard report.
-2. Click **"Simulate new reporter"** on the form (swaps the browser's local reporter identity) and submit again — same category, same approximate location.
+2. Click **"Simulate new reporter"** on the form (swaps the browser's local reporter identity) and submit again, same category, same approximate location.
 3. Repeat: **3 distinct reporters** flips the cluster to *candidate*, **6** flips it to *verified*.
 4. Once verified, scroll to **For authorities** to generate and approve a complaint, or try **Ask VeriGrid** and **Routes** to see the same cluster surfaced there.
 
@@ -231,17 +229,9 @@ VeriGrid/
 
 ## Known limitations & roadmap
 
-- MirEye's documented API doesn't currently expose an observation-write endpoint, so verified clusters can't be pushed back to MirEye — this is logged as a skipped attempt rather than silently doing nothing.
+- MirEye's documented API doesn't currently expose an observation-write endpoint, so verified clusters can't be pushed back to MirEye. This is logged as a skipped attempt rather than silently doing nothing.
 - Routing selects among a handful of OSRM route alternatives rather than true avoid-polygon routing; if no alternative fully avoids every verified hazard, it says so rather than guessing.
-- No real user accounts — identity is a device-scoped id by design, matching the product's zero-friction reporting goal.
+- No real user accounts; identity is a device-scoped id by design, matching the product's zero-friction reporting goal.
 - Authority complaint delivery falls back to a logged mock send unless SMTP is configured.
 
-## Team
 
-- [Name] — [role]
-- [Name] — [role]
-- [Name] — [role]
-
----
-
-Built for [Hackathon Name], [Date].
