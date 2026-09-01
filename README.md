@@ -20,7 +20,7 @@ VeriGrid turns scattered, unverifiable citizen hazard reports (flooding, road da
 - [Running a live demo](#running-a-live-demo)
 - [Project structure](#project-structure)
 - [Known limitations & roadmap](#known-limitations--roadmap)
-- [Team](#team)
+  
 
 ---
 
