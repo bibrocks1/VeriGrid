@@ -1,3 +1,5 @@
+import json
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from geoalchemy2.shape import from_shape, to_shape
@@ -333,6 +335,31 @@ def get_safe_route_endpoint(
         return get_safe_route(db, origin_lat, origin_lng, dest_lat, dest_lng)
     except RoutingAPIError as exc:
         raise HTTPException(status_code=502, detail=f"Routing service failed: {exc}")
+
+
+@app.get("/clusters/{cluster_id}/mireye-payload")
+def get_cluster_mireye_payload(cluster_id: int, db: Session = Depends(get_db)):
+    """Day 8: the full observation payload VeriGrid built and would push to
+    MirEye the moment this cluster verified. MirEye's API has no write
+    endpoint (see adapters/mireye_adapter.push_verified_observation), so
+    this was never sent over the network, but every field is real and
+    already computed, ready to send the instant a write endpoint exists."""
+    log = (
+        db.query(MireyeSyncLog)
+        .filter(MireyeSyncLog.cluster_id == cluster_id, MireyeSyncLog.kind == "verified_push")
+        .order_by(MireyeSyncLog.created_at.desc())
+        .first()
+    )
+    if log is None:
+        raise HTTPException(
+            status_code=404, detail="No prepared MirEye payload for this cluster (it may not be verified yet)"
+        )
+    return {
+        "clusterId": cluster_id,
+        "status": "prepared_not_sent",
+        "preparedAt": log.created_at.isoformat() if log.created_at else None,
+        "payload": json.loads(log.detail),
+    }
 
 
 @app.get("/mireye/sync-log")

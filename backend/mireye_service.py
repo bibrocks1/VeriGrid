@@ -4,12 +4,15 @@ returned fields, and a log row for every real call (Day 8's spirit,
 adapted — MirEye's API has no write/push endpoint, so this logs the reads
 we actually make instead of pushes we can't)."""
 
+import json
+from datetime import datetime, timezone
 from typing import Any
 
+from geoalchemy2.shape import to_shape
 from sqlalchemy.orm import Session
 
 from adapters.mireye_adapter import MireyeAPIError, get_area_context
-from models import MireyeSyncLog, ReportCategory
+from models import HazardCluster, MireyeSyncLog, Report, ReportCategory
 
 # Which MirEye preset gives the most relevant signal for each report
 # category. Categories with no strong geospatial signal (road_damage,
@@ -98,3 +101,51 @@ def score_report_credibility(
     # carry a direct signal for these, so no score is asserted rather than
     # fabricating one from an unrelated field.
     return None, "no MirEye preset maps to this category"
+
+
+def build_verified_observation_payload(cluster: HazardCluster, members: list[Report]) -> dict[str, Any]:
+    """Day 8: 'format the payload to match MirEye's real schema.' There's
+    no published write-endpoint schema to match (confirmed live against
+    the actual API — see push_verified_observation), so this is our best-
+    effort shape for a geospatial hazard observation: close to what
+    push_verified_observation(payload) would need to send verbatim the
+    moment MirEye exposes a write endpoint. Built and stored in full
+    regardless, rather than only recording that a push *would* happen."""
+    point = to_shape(cluster.geom)
+    distinct_reporters = len({r.user_id for r in members})
+    first_reported_at = min((r.created_at for r in members), default=cluster.created_at)
+
+    return {
+        "source": "VeriGrid",
+        "observation_type": "verified_hazard_cluster",
+        "category": cluster.category.value,
+        "location": {"lat": point.y, "lng": point.x},
+        "confidence": cluster.confidence,
+        "distinct_reporters": distinct_reporters,
+        "report_count": cluster.report_count,
+        "first_reported_at": first_reported_at.isoformat() if first_reported_at else None,
+        "verified_at": (cluster.verified_at or datetime.now(timezone.utc)).isoformat(),
+        "description": members[0].description if members else None,
+    }
+
+
+def log_verified_push(db: Session, cluster: HazardCluster, members: list[Report]) -> None:
+    """Builds the full push payload and persists it against this cluster
+    (MireyeSyncLog.cluster_id), so it's inspectable via
+    GET /clusters/{id}/mireye-payload rather than existing only as a
+    sentence in an undifferentiated log. Status stays "skipped" because
+    nothing was actually sent over the network — MirEye has no write
+    endpoint — but every field MirEye would need is already computed and
+    ready."""
+    point = to_shape(cluster.geom)
+    payload = build_verified_observation_payload(cluster, members)
+    db.add(
+        MireyeSyncLog(
+            kind="verified_push",
+            lat=point.y,
+            lng=point.x,
+            status="skipped",
+            detail=json.dumps(payload),
+            cluster_id=cluster.id,
+        )
+    )

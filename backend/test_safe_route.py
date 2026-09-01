@@ -35,21 +35,52 @@ def test_returns_first_clean_alternative(mock_hazards, mock_routes):
     assert result["geometry"] == clean_route["geometry"]
     assert result["warning"] is None
     assert result["hazardWarnings"] == []
+    assert result["detoured"] is False
 
 
+@patch("routing.safe_route.get_route_via_waypoint")
 @patch("routing.safe_route.get_route_alternatives")
 @patch("routing.safe_route._hazards_near_route")
-def test_warns_when_no_clean_route_exists(mock_hazards, mock_routes):
+def test_detours_when_no_clean_alternative_exists(mock_hazards, mock_routes, mock_waypoint_route):
+    # Only one OSRM alternative, and it's dirty.
+    dirty_route = _route([[28.60, 77.20], [28.61, 77.21]])
+    mock_routes.return_value = [dirty_route]
+    hazard = {"clusterId": 1, "category": "flooding", "lat": 28.605, "lng": 77.205, "distanceM": 10, "confidence": 70}
+
+    # First call (checking the OSRM alternative) finds the hazard; the
+    # first nudge-waypoint attempt afterward is clean.
+    mock_hazards.side_effect = [[hazard], []]
+
+    detoured_route = _route([[28.60, 77.20], [28.605, 77.215], [28.61, 77.21]], distance_m=1300, duration_s=160)
+    mock_waypoint_route.return_value = detoured_route
+
+    db = MagicMock()
+    result = get_safe_route(db, 28.60, 77.20, 28.61, 77.21)
+
+    assert result["geometry"] == detoured_route["geometry"]
+    assert result["detoured"] is True
+    assert result["warning"] is None
+    assert result["hazardWarnings"] == []
+    mock_waypoint_route.assert_called()
+
+
+@patch("routing.safe_route.get_route_via_waypoint")
+@patch("routing.safe_route.get_route_alternatives")
+@patch("routing.safe_route._hazards_near_route")
+def test_warns_when_neither_alternatives_nor_detour_are_clean(mock_hazards, mock_routes, mock_waypoint_route):
     dirty_route = _route([[28.60, 77.20], [28.61, 77.21]])
     mock_routes.return_value = [dirty_route]  # only one option, and it's dirty
     hazard = {"clusterId": 1, "category": "flooding", "lat": 28.605, "lng": 77.205, "distanceM": 10, "confidence": 70}
+    # Every check (the alternative, and both detour attempts) stays dirty.
     mock_hazards.return_value = [hazard]
+    mock_waypoint_route.return_value = _route([[28.60, 77.20], [28.605, 77.215], [28.61, 77.21]])
 
     db = MagicMock()
     result = get_safe_route(db, 28.60, 77.20, 28.61, 77.21)
 
     assert result["warning"] is not None
     assert result["hazardWarnings"] == [hazard]
+    assert result["detoured"] is False
 
 
 @patch("routing.safe_route.get_route_alternatives")
@@ -64,6 +95,7 @@ def test_no_hazards_returns_default_route_with_no_warning(mock_hazards, mock_rou
 
     assert result["warning"] is None
     assert result["hazardWarnings"] == []
+    assert result["detoured"] is False
 
 
 @patch("routing.safe_route.get_route_alternatives", side_effect=RoutingAPIError("simulated failure"))

@@ -58,8 +58,8 @@ MirEye/NOAA evidence
 
                 Hazard-aware routing
      OSRM route → checked against verified hotspots
-     → picks the first alternative that clears them,
-       or warns if none do
+     → clean alternative, or a computed detour waypoint,
+       or an honest warning if neither clears it
 ```
 
 Every report also gets an on-submission MirEye credibility check (e.g. is a flooding report actually near a floodplain or low elevation?). It's advisory, never blocking, and logged either way.
@@ -73,7 +73,7 @@ Every report also gets an on-submission MirEye credibility check (e.g. is a floo
 - **MirEye geospatial grounding**: every report is checked against real terrain/flood-risk/hazard data for its category (flooding → flood-risk preset, safety → natural-hazard preset, etc.), producing a plausibility score and human-readable notes.
 - **RAG chat ("Ask VeriGrid")**: ask a natural-language question about any point on the map; the answer is retrieved from nearby VeriGrid reports/clusters plus MirEye and NOAA context, and is explicitly labeled by which source it actually came from.
 - **Authority Agent**: a verified cluster becomes an LLM-drafted, evidence-cited complaint addressed to the correct local authority (a fixed category → authority mapping), with severity, confidence, and contributor count computed from the cluster itself, not invented by the model. A human must approve before it's sent (SMTP if configured, otherwise a logged mock delivery for a repeatable demo).
-- **Hazard-aware routing**: real OSRM routing, checked against verified hotspots along the path; picks the first alternative route that clears all of them, or is honest that none do, with full turn-by-turn directions.
+- **Hazard-aware routing**: real OSRM routing, checked against verified hotspots along the path. Picks the first route alternative that clears every hazard; if none do, actively computes a detour waypoint around the nearest one and recalculates; only falls back to the shortest option, with an explicit warning, if no detour attempt clears it either. Full turn-by-turn directions either way.
 - **Live sync status**: a visible, real (not decorative) log of every MirEye API call the backend has actually made.
 
 ## Tech stack
@@ -85,12 +85,12 @@ Every report also gets an on-submission MirEye credibility check (e.g. is a floo
 ## Architecture
 
 ```
-┌─────────────────┐        ┌──────────────────────────┐        ┌─────────────────┐
-│   Next.js UI     │ HTTP   │        FastAPI            │        │   PostgreSQL     │
-│  (map, chat,     │──────▶│  reports / clusters /      │◀──────▶│   + PostGIS      │
-│  report form,    │◀──────│  chat / authority / route  │  SQL   │   (Neon)         │
-│  authority view) │  JSON  │                            │        └─────────────────┘
-└─────────────────┘        └──────────┬─────────────────┘
+┌─────────────────┐         ┌──────────────────────────┐          ┌─────────────────┐
+│   Next.js UI     │ HTTP   │        FastAPI           │          │   PostgreSQL    │
+│  (map, chat,     │──────▶│  reports / clusters /     │◀──────▶│   + PostGIS      │
+│  report form,    │◀──────│  chat / authority / route │  SQL    │   (Neon)         │
+│  authority view) │  JSON  │                          │          └─────────────────┘
+└─────────────────┘         └──────────┬───────────────┘
                                        │
                     ┌──────────────────┼──────────────────┬───────────────┐
                     ▼                  ▼                  ▼               ▼
@@ -193,8 +193,9 @@ All routes are served from the FastAPI backend; full interactive docs at `/docs`
 | `POST` | `/clusters/{id}/send-report` | Approve and deliver an authority complaint |
 | `GET` | `/complaints` | List all authority complaints |
 | `GET` | `/alerts/nearby` | Verified clusters near a point (for polling-based alerts) |
-| `GET` | `/route/safe` | Hazard-aware route between two points |
+| `GET` | `/route/safe` | Hazard-aware route between two points, detouring around verified hazards where the road network allows it |
 | `GET` | `/mireye/sync-log` | Log of real MirEye API calls made |
+| `GET` | `/clusters/{id}/mireye-payload` | The full observation payload prepared for a verified cluster, ready to push the moment MirEye exposes a write endpoint |
 
 ## Running a live demo
 
@@ -229,8 +230,8 @@ VeriGrid/
 
 ## Known limitations & roadmap
 
-- MirEye's documented API doesn't currently expose an observation-write endpoint, so verified clusters can't be pushed back to MirEye. This is logged as a skipped attempt rather than silently doing nothing.
-- Routing selects among a handful of OSRM route alternatives rather than true avoid-polygon routing; if no alternative fully avoids every verified hazard, it says so rather than guessing.
+- MirEye's documented API doesn't currently expose an observation-write endpoint, so nothing is actually sent over the network when a cluster verifies. VeriGrid still completes its side of the integration: the full observation payload (category, location, confidence, distinct reporters, timestamps) is built and persisted the moment a cluster verifies, inspectable via `GET /clusters/{id}/mireye-payload`, ready to send the instant a write endpoint exists.
+- Routing doesn't have access to true avoid-polygon routing, so it actively detours instead: if none of OSRM's own route alternatives clear a verified hazard, VeriGrid computes a waypoint perpendicular to the route at progressively larger offsets and asks OSRM to recalculate through it, on both sides of the hazard. Only if no offset produces a clean route (typically a real road-network chokepoint, e.g. a dense one-way grid with no viable alternate street) does it fall back to the shortest option with an explicit warning, rather than guessing.
 - No real user accounts; identity is a device-scoped id by design, matching the product's zero-friction reporting goal.
 - Authority complaint delivery falls back to a logged mock send unless SMTP is configured.
 
